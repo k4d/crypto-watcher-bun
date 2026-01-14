@@ -4,7 +4,7 @@
 
 ## Возможности
 
-- Получает цены на криптовалюту в реальном времени из API CoinGecko.
+- Получает цены на криптовалюту в реальном времени из API **Binance**.
 - Настраиваемый список криптовалют для отслеживания.
 - Настраиваемый интервал получения данных (поддерживает секунды, минуты и часы).
 - Цветной вывод для лучшей читаемости.
@@ -34,18 +34,19 @@
 
     ```yaml
     ---
-    # Валюта, в которой отображать цены (например, usd, eur, jpy)
-    currency: usd
+    # Базовая валюта теперь является частью символа (например, BTCUSDT).
+    # Это поле все еще может быть полезно для отображения.
+    currency: USDT
     # Интервал, с которым запрашивать новые цены (s: секунды, m: минуты, h: часы)
     fetch_interval: 5m
     # Список криптовалют для отслеживания.
-    # Ключ - это идентификатор API CoinGecko, а значение - символ для отображения.
+    # Ключ - это торговая пара API Binance (например, BTCUSDT), 
+    # а значение - символ для отображения.
     coins:
-      bitcoin: BTC
-      ethereum: ETH
-      the-open-network: TON
-      tron: TRX
-      zcash: ZEC
+      BTCUSDT: BTC
+      ETHUSDT: ETH
+      TRXUSDT: TRX
+      ZECUSDT: ZEC
     ```
 
 ## Использование
@@ -64,12 +65,11 @@ bun start
 Crypto Watcher started. Initial fetch...
 Scheduler started: fetching every 5m
 
-Task run at 4:25:00 PM
-BTC      : 95157 USD
-ETH      : 3301.46 USD
-TON      : 1.78 USD
-TRX      : 0.302001 USD
-ZEC      : 418.05 USD
+Task run at 5:41:03 PM
+BTC      : 95856.98 USDT
+ETH      : 3325.66 USDT
+TRX      : 0.3037 USDT
+ZEC      : 421.5 USDT
 ```
 
 ## Разработка
