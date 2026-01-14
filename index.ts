@@ -31,9 +31,9 @@ interface BinanceError {
 // Reads 'config.yml', parses it, and stores it in the 'config' constant.
 const config = YAML.parse(fs.readFileSync("config.yml", "utf8"));
 
-// Fetches cryptocurrency data from the Binance API.
-// Takes an array of coin symbols (e.g., ["BTCUSDT", "ETHUSDT"]) as input.
-// Returns a Promise that resolves to a transformed response or null if an error occurs.
+// Fetches cryptocurrency price data for given symbols from the Binance API.
+// Takes an array of Binance-compatible coin symbols (e.g., ["BTCUSDT", "ETHUSDT"]) as input.
+// Returns a Promise that resolves to a transformed response containing prices or null if an error occurs.
 async function fetchCoinData(
 	coinSymbols: string[],
 ): Promise<TransformedBinanceResponse | null> {
@@ -48,7 +48,8 @@ async function fetchCoinData(
 
 		// Checks if the API response was successful
 		if (!response.ok) {
-			// If the error is a 400 Bad Request, it's likely an invalid symbol
+			// If the error is a 400 Bad Request, it indicates an invalid symbol or malformed request.
+			// Parse the error data from Binance for a more specific message.
 			if (response.status === 400) {
 				const errorData = (await response.json()) as BinanceError;
 				console.log(
@@ -87,11 +88,12 @@ async function fetchCoinData(
 	}
 }
 
-// Main task function to fetch and display cryptocurrency prices.
-// It retrieves coin symbols from the configuration, fetches data,
-// and then logs the prices to the console.
+// Main task function to fetch and display cryptocurrency prices from Binance.
+// It retrieves Binance-compatible coin symbols from the configuration,
+// fetches their current data via the Binance API, and then logs the prices to the console.
 async function runTask() {
-	const coinSymbols = Object.keys(config.coins); // Get coin symbols from config
+	const coinSymbols = Object.keys(config.coins); // Get Binance-compatible coin symbols from config
+	// config.currency (e.g., "USDT") now represents the quote asset in Binance trading pairs.
 	const prices = await fetchCoinData(coinSymbols); // Fetch prices
 
 	if (prices) {
