@@ -1,0 +1,11 @@
+---
+currency: usd
+fetch_interval: 1m
+coins:
+  bitcoin: BTC
+  ethereum: ETH
+  the-open-network: TON
+  tron: TRX
+  zilliqa: ZIL
+  zcash: ZEC
+  terra-luna-2: LUNA2
