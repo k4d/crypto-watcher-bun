@@ -1,15 +1,73 @@
-# crypto-watcher-bun
+# Crypto Watcher (Bun)
 
-To install dependencies:
+Простой настраиваемый инструмент командной строки для мониторинга цен на криптовалюту из терминала, созданный с помощью Bun и TypeScript.
 
-```bash
-bun install
-```
+## Возможности
 
-To run:
+- Получает цены на криптовалюту в реальном времени из API CoinGecko.
+- Настраиваемый список криптовалют для отслеживания.
+- Настраиваемый интервал получения данных (поддерживает секунды, минуты и часы).
+- Цветной вывод для лучшей читаемости.
+
+## Предварительные требования
+
+- [Bun](https://bun.com) (v1.3.6 или новее)
+
+## Установка
+
+1.  Клонируйте репозиторий:
+
+    ```bash
+    git clone https://github.com/k4d/-crypto-watcher-bun.git
+    cd -crypto-watcher-bun
+    ```
+
+2.  Установите зависимости:
+    ```bash
+    bun install
+    ```
+
+## Конфигурация
+
+1.  Создайте файл `config.yml` в корне проекта (или переименуйте `config.yml.example`, если он существует).
+2.  Добавьте желаемую конфигурацию. Вот пример:
+
+    ```yaml
+    ---
+    # Валюта, в которой отображать цены (например, usd, eur, jpy)
+    currency: usd
+    # Интервал, с которым запрашивать новые цены (s: секунды, m: минуты, h: часы)
+    fetch_interval: 5m
+    # Список криптовалют для отслеживания.
+    # Ключ - это идентификатор API CoinGecko, а значение - символ для отображения.
+    coins:
+      bitcoin: BTC
+      ethereum: ETH
+      the-open-network: TON
+      tron: TRX
+      zcash: ZEC
+    ```
+
+## Использование
+
+Чтобы запустить приложение:
 
 ```bash
 bun run index.ts
 ```
 
-This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+Приложение выполнит первоначальную выборку, а затем продолжит получать цены с интервалом, указанным в `config.yml`.
+
+### Пример вывода
+
+```
+Crypto Watcher started. Initial fetch...
+Scheduler started: fetching every 5m
+
+Task run at 4:25:00 PM
+BTC      : 95157 USD
+ETH      : 3301.46 USD
+TON      : 1.78 USD
+TRX      : 0.302001 USD
+ZEC      : 418.05 USD
+```
