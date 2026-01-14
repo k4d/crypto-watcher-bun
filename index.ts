@@ -7,45 +7,75 @@ import chalk from "chalk";
 import cron from "node-cron";
 import YAML from "yaml";
 
-// Define the structure for a single coin's price data (e.g., { usd: 95000 })
-interface CoinPriceData {
-	[currency: string]: number; // Allows indexing with a string (currency code)
+// Define the structure for a single ticker from Binance API
+interface BinanceTicker {
+	symbol: string;
+	price: string;
 }
 
-// Define the structure for the CoinGecko API response
-interface CoinGeckoResponse {
-	[coinId: string]: CoinPriceData; // Allows indexing with a string (coin ID)
+// Define the structure for the transformed response, similar to the old CoinGeckoResponse
+// This makes it easier to integrate with the rest of the application
+interface TransformedBinanceResponse {
+	[symbol: string]: {
+		[currency: string]: number;
+	};
+}
+
+// Define the structure for a Binance API error response
+interface BinanceError {
+	code: number;
+	msg: string;
 }
 
 // Load configuration from YAML file
 // Reads 'config.yml', parses it, and stores it in the 'config' constant.
 const config = YAML.parse(fs.readFileSync("config.yml", "utf8"));
 
-// Fetches cryptocurrency data from the CoinGecko API.
-// Takes an array of coin IDs and a target currency as input.
-// Returns a Promise that resolves to CoinGeckoResponse (price data) or null if an error occurs.
+// Fetches cryptocurrency data from the Binance API.
+// Takes an array of coin symbols (e.g., ["BTCUSDT", "ETHUSDT"]) as input.
+// Returns a Promise that resolves to a transformed response or null if an error occurs.
 async function fetchCoinData(
-	coinIds: string[],
-	currency: string,
-): Promise<CoinGeckoResponse | null> {
-	const ids = coinIds.join(","); // Joins coin IDs for the API request
-	const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${currency}`;
+	coinSymbols: string[],
+): Promise<TransformedBinanceResponse | null> {
+	// Binance API requires symbols in a JSON array string format, which needs to be URL-encoded.
+	const params = new URLSearchParams({
+		symbols: JSON.stringify(coinSymbols),
+	});
+	const url = `https://api.binance.com/api/v3/ticker/price?${params.toString()}`;
 
 	try {
-		const response = await fetch(url); // Makes an HTTP request to CoinGecko API
+		const response = await fetch(url); // Makes an HTTP request to Binance API
 
 		// Checks if the API response was successful
 		if (!response.ok) {
-			console.log(
-				chalk.red(`Ошибка при получении цены: ${response.statusText}`),
-			);
+			// If the error is a 400 Bad Request, it's likely an invalid symbol
+			if (response.status === 400) {
+				const errorData = (await response.json()) as BinanceError;
+				console.log(
+					chalk.red(
+						`Ошибка при получении цены: ${errorData.msg || "Bad Request"}. Проверьте символы в config.yml.`,
+					),
+				);
+			} else {
+				console.log(
+					chalk.red(`Ошибка при получении цены: ${response.statusText}`),
+				);
+			}
 			return null;
 		}
 
-		// Parses the JSON response into CoinGeckoResponse type
-		const data = (await response.json()) as CoinGeckoResponse;
+		// Parses the JSON response which is an array of BinanceTicker objects
+		const data = (await response.json()) as BinanceTicker[];
 
-		return data;
+		// Transform the array response into a dictionary for easier access
+		const transformedData: TransformedBinanceResponse = {};
+		for (const ticker of data) {
+			transformedData[ticker.symbol] = {
+				[config.currency]: Number(ticker.price),
+			};
+		}
+
+		return transformedData;
 	} catch (error) {
 		// Handles network or other unexpected errors
 		if (error instanceof Error) {
@@ -58,18 +88,17 @@ async function fetchCoinData(
 }
 
 // Main task function to fetch and display cryptocurrency prices.
-// It retrieves coin IDs and the target currency from the configuration,
-// fetches data, and then logs the prices to the console.
+// It retrieves coin symbols from the configuration, fetches data,
+// and then logs the prices to the console.
 async function runTask() {
-	const coinIds = Object.keys(config.coins); // Get coin IDs from config
-	const currency = config.currency; // Get target currency from config
-	const prices = await fetchCoinData(coinIds, currency); // Fetch prices
+	const coinSymbols = Object.keys(config.coins); // Get coin symbols from config
+	const prices = await fetchCoinData(coinSymbols); // Fetch prices
 
 	if (prices) {
 		console.log(chalk.gray(`\nTask run at ${new Date().toLocaleTimeString()}`));
 
 		// Iterate through each configured coin and display its price
-		for (const id of coinIds) {
+		for (const id of coinSymbols) {
 			// Check if price data is available for the current coin and currency
 			if (prices[id]?.[config.currency]) {
 				const price = prices[id][config.currency];

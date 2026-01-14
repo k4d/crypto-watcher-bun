@@ -1,11 +1,14 @@
 ---
-currency: usd
+# Базовая валюта теперь является частью символа (например, BTCUSDT).
+# Это поле все еще может быть полезно для отображения.
+currency: USDT
+# Интервал, с которым запрашивать новые цены (s: секунды, m: минуты, h: часы)
 fetch_interval: 1m
+# Список криптовалют для отслеживания.
+# Ключ - это торговая пара API Binance (например, BTCUSDT),
+# а значение - символ для отображения.
 coins:
-  bitcoin: BTC
-  ethereum: ETH
-  the-open-network: TON
-  tron: TRX
-  zilliqa: ZIL
-  zcash: ZEC
-  terra-luna-2: LUNA2
+  BTCUSDT: BTC
+  ETHUSDT: ETH
+  TRXUSDT: TRX
+  ZECUSDT: ZEC
