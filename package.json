@@ -5,6 +5,7 @@
 	"private": true,
 	"scripts": {
 		"start": "bun run index.ts",
+		"build": "bun build index.ts --outdir ./dist --target bun",
 		"format": "bunx @biomejs/biome format --write .",
 		"lint": "bunx @biomejs/biome check --write ."
 	},
