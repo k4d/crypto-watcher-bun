@@ -29,7 +29,7 @@ interface BinanceError {
 
 // Load configuration from YAML file
 // Reads 'config.yml', parses it, and stores it in the 'config' constant.
-const config = YAML.parse(fs.readFileSync("config.yml", "utf8"));
+const config = YAML.parse(fs.readFileSync("src/config.yml", "utf8"));
 
 // Fetches cryptocurrency price data for given symbols from the Binance API.
 // Takes an array of Binance-compatible coin symbols (e.g., ["BTCUSDT", "ETHUSDT"]) as input.

@@ -18,8 +18,8 @@
 1.  Клонируйте репозиторий:
 
     ```bash
-    git clone https://github.com/k4d/-crypto-watcher-bun.git
-    cd -crypto-watcher-bun
+    git clone https://github.com/k4d/crypto-watcher-bun.git
+    cd crypto-watcher-bun
     ```
 
 2.  Установите зависимости:
@@ -40,7 +40,7 @@
     # Интервал, с которым запрашивать новые цены (s: секунды, m: минуты, h: часы)
     fetch_interval: 5m
     # Список криптовалют для отслеживания.
-    # Ключ - это торговая пара API Binance (например, BTCUSDT), 
+    # Ключ - это торговая пара API Binance (например, BTCUSDT),
     # а значение - символ для отображения.
     coins:
       BTCUSDT: BTC
@@ -62,6 +62,7 @@ bun run dev
 ### Запуск продакшен-версии
 
 1.  **Создайте продакшен-сборку:**
+
     ```bash
     bun run build
     ```
