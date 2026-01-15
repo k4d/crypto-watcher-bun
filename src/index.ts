@@ -1,10 +1,10 @@
 // This is the main entry point and orchestrator for the application.
 // It coordinates the config, api, display, and scheduler modules.
 
-import config from "./config";
-import { fetchCoinData } from "./api";
-import { startScheduler } from "./scheduler";
-import { logAppStart, logPriceData } from "./display";
+import config from "@/config";
+import { fetchCoinData } from "@/api";
+import { startScheduler } from "@/scheduler";
+import { logAppStart, logPriceData } from "@/display";
 
 /**
  * The main task function that is executed on each scheduled interval.

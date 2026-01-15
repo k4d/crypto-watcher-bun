@@ -1,11 +1,13 @@
 import chalk from "chalk";
 import { z, ZodError } from "zod"; // Import 'z'
-import config from "../config";
+import config from "@/config";
 import {
 	BinanceErrorSchema,
 	BinanceTickerSchema,
+	type BinanceError,
+	type BinanceTicker,
 	type TransformedBinanceResponse,
-} from "../types";
+} from "@/types";
 
 // This module contains the logic for interacting with the Binance API.
 

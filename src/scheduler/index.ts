@@ -1,6 +1,6 @@
 import cron from "node-cron";
-import config from "../config";
-import { logSchedulerStart, logInvalidIntervalError } from "../display";
+import config from "@/config";
+import { logSchedulerStart, logInvalidIntervalError } from "@/display";
 
 // This function sets up and starts the cron job for a given task.
 export function startScheduler(task: () => void) {

@@ -1,8 +1,8 @@
 // This module centralizes all functions related to console output and formatting.
 
 import chalk from "chalk";
-import config from "../config";
-import type { TransformedBinanceResponse } from "../types";
+import config from "@/config";
+import type { TransformedBinanceResponse } from "@/types";
 
 /**
  * Logs the prices of cryptocurrencies to the console.
