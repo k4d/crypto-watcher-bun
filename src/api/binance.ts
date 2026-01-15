@@ -1,9 +1,10 @@
 import chalk from "chalk";
+import { z, ZodError } from "zod"; // Import 'z'
 import config from "../config";
-import type {
-	BinanceError,
-	BinanceTicker,
-	TransformedBinanceResponse,
+import {
+	BinanceErrorSchema,
+	BinanceTickerSchema,
+	type TransformedBinanceResponse,
 } from "../types";
 
 // This module contains the logic for interacting with the Binance API.
@@ -22,32 +23,49 @@ export async function fetchCoinData(
 
 	try {
 		const response = await fetch(url); // Makes an HTTP request to Binance API.
+		const responseData = await response.json(); // Get the JSON body once.
 
 		// Checks if the API response was successful.
 		if (!response.ok) {
 			// If the error is a 400 Bad Request, it indicates an invalid symbol or malformed request.
 			// Parse the error data from Binance for a more specific message.
 			if (response.status === 400) {
-				const errorData = (await response.json()) as BinanceError;
-				console.log(
-					chalk.red(
-						`Ошибка API: ${errorData.msg || "Bad Request"}. Проверьте символы в config.yml.`,
-					),
-				);
+				const parsedError = BinanceErrorSchema.safeParse(responseData);
+				if (parsedError.success) {
+					console.log(
+						chalk.red(
+							`Ошибка API: ${parsedError.data.msg || "Bad Request"}. Проверьте символы в config.yml.`,
+						),
+					);
+				} else {
+					console.log(
+						chalk.red(
+							`Не удалось разобрать сообщение об ошибке от API: ${response.statusText}`,
+						),
+					);
+				}
 			} else {
-				console.log(
-					chalk.red(`Ошибка сети: ${response.statusText}`),
-				);
+				console.log(chalk.red(`Ошибка сети: ${response.statusText}`));
 			}
 			return null;
 		}
 
-		// Parses the JSON response, which is an array of BinanceTicker objects.
-		const data = (await response.json()) as BinanceTicker[];
+		// Use Zod to safely parse the successful response.
+		const parsedData = BinanceTickerSchema.array().safeParse(responseData);
+
+		if (!parsedData.success) {
+			console.log(
+				chalk.red(
+					"Ошибка валидации: Ответ API не соответствует ожидаемой структуре.",
+				),
+			);
+			// Optionally log parsedData.error for detailed debugging
+			return null;
+		}
 
 		// Transform the array-based response from Binance into a more accessible dictionary format.
 		const transformedData: TransformedBinanceResponse = {};
-		for (const ticker of data) {
+		for (const ticker of parsedData.data) {
 			transformedData[ticker.symbol] = {
 				[config.currency]: Number(ticker.price),
 			};
@@ -55,8 +73,10 @@ export async function fetchCoinData(
 
 		return transformedData;
 	} catch (error) {
-		// Handles network errors or other unexpected issues during the fetch.
-		if (error instanceof Error) {
+		// Handles network errors, JSON parsing errors, or Zod errors.
+		if (error instanceof ZodError) {
+			console.log(chalk.red("Ошибка валидации Zod:"), z.treeifyError(error)); // Use z.treeifyError
+		} else if (error instanceof Error) {
 			console.log(chalk.red(`Ошибка сети: ${error.message}`));
 		} else {
 			console.log(chalk.red("Произошла неизвестная сетевая ошибка"));
