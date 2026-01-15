@@ -1,19 +1,22 @@
+/**
+ * @file This module contains the logic for interacting with the Binance API.
+ */
+
 import chalk from "chalk";
-import { z, ZodError } from "zod"; // Import 'z'
+import { z, ZodError } from "zod";
 import config from "@/config";
 import {
 	BinanceErrorSchema,
 	BinanceTickerSchema,
-	type BinanceError,
-	type BinanceTicker,
 	type TransformedBinanceResponse,
 } from "@/types";
 
-// This module contains the logic for interacting with the Binance API.
-
-// Fetches cryptocurrency price data for given symbols from the Binance API.
-// Takes an array of Binance-compatible coin symbols (e.g., ["BTCUSDT", "ETHUSDT"]) as input.
-// Returns a Promise that resolves to a transformed response containing prices or null if an error occurs.
+/**
+ * Fetches cryptocurrency price data for given symbols from the Binance API.
+ * It validates the response using Zod schemas and transforms the data for internal use.
+ * @param coinSymbols An array of Binance-compatible coin symbols (e.g., ["BTCUSDT", "ETHUSDT"]).
+ * @returns A Promise that resolves to a transformed response containing prices, or null if an error occurs.
+ */
 export async function fetchCoinData(
 	coinSymbols: string[],
 ): Promise<TransformedBinanceResponse | null> {

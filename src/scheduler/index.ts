@@ -1,9 +1,17 @@
+/**
+ * @file This module handles the scheduling of recurring tasks using node-cron.
+ */
+
 import cron from "node-cron";
 import config from "@/config";
 import { logSchedulerStart, logInvalidIntervalError } from "@/display";
 
-// This function sets up and starts the cron job for a given task.
+/**
+ * Sets up and starts a cron job based on the interval specified in the configuration.
+ * @param task The function to be executed on each scheduled interval.
+ */
 export function startScheduler(task: () => void) {
+	// Parses the fetch_interval from the configuration and sets up a cron job.
 	const interval = config.fetch_interval; // e.g., "30s", "5m", "1h"
 	const intervalMatch = interval.match(/^(\d+)([smh])$/); // Regex to parse value and unit
 

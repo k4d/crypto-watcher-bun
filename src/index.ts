@@ -1,5 +1,7 @@
-// This is the main entry point and orchestrator for the application.
-// It coordinates the config, api, display, and scheduler modules.
+/**
+ * @file This is the main entry point and orchestrator for the application.
+ * It coordinates the config, api, display, and scheduler modules to run the crypto watcher.
+ */
 
 import config from "@/config";
 import { fetchCoinData } from "@/api";

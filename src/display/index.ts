@@ -1,4 +1,6 @@
-// This module centralizes all functions related to console output and formatting.
+/**
+ * @file This module centralizes all functions related to console output and formatting.
+ */
 
 import chalk from "chalk";
 import config from "@/config";
