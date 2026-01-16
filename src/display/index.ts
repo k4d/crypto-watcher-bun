@@ -55,7 +55,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 					priceColor = chalk.red; // Price went down
 					changeString = chalk.red(`▼ ${percentageChange.toFixed(2)}%`);
 				} else {
-					changeString = "(0.00%)";
+					changeString = chalk.white("   0.00%"); // Neutral indicator for no change
 				}
 			}
 
@@ -76,7 +76,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 						`▼ ${totalPercentageChange.toFixed(2)}%`,
 					);
 				} else {
-					totalChangeString = "(0.00%)";
+					totalChangeString = chalk.white("   0.00%"); // Neutral indicator for no change
 				}
 			}
 
