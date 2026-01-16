@@ -13,10 +13,7 @@ let initialPrices: TransformedBinanceResponse | null = null;
 
 /**
  * Logs the prices of cryptocurrencies to the console in a tabular format.
- * It also colors the price based on changes compared to the previous fetch:
- * - Green if the price increased.
- * - Red if the price decreased.
- * - White (default) if the price remained the same or on the first fetch.
+ * It also colors the price based on changes and shows volatility ranks.
  * @param currentPrices - The transformed price data from the current API fetch.
  */
 export function logPriceData(currentPrices: TransformedBinanceResponse) {
@@ -28,72 +25,86 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	}
 
 	const coinSymbols = Object.keys(config.coins);
-	const tableData = [];
+	const intermediateData = [];
 
-	// Iterate through each configured coin and collect its price data.
+	// --- Pass 1: Collect data and calculate volatility ---
 	for (const id of coinSymbols) {
 		const currentPrice = currentPrices[id]?.[config.currency];
 		const symbol = config.coins[id];
 
-		// Only proceed if we have a valid price for the current coin.
 		if (currentPrice !== undefined) {
-			let priceColor = chalk.white; // Default color function is white
-			let changeString = chalk.gray("N/A"); // Default for first run
-			let totalChangeString = chalk.gray("N/A"); // Default for first run
+			let priceColor = chalk.white;
+			let changeString = chalk.gray("N/A");
+			let totalChangeString = chalk.gray("N/A");
+			let volatility = 0;
 
-			// --- Calculate change from PREVIOUS fetch ---
 			const oldPrice = previousPrices?.[id]?.[config.currency];
 			if (oldPrice !== undefined) {
+				volatility = Math.abs(((currentPrice - oldPrice) / oldPrice) * 100);
 				if (currentPrice > oldPrice) {
-					const percentageChange =
-						((currentPrice - oldPrice) / oldPrice) * 100;
-					priceColor = chalk.green; // Price went up
-					changeString = chalk.green(`▲ +${percentageChange.toFixed(2)}%`);
+					priceColor = chalk.green;
+					changeString = chalk.green(`▲ +${volatility.toFixed(2)}%`);
 				} else if (currentPrice < oldPrice) {
-					const percentageChange =
-						((currentPrice - oldPrice) / oldPrice) * 100;
-					priceColor = chalk.red; // Price went down
-					changeString = chalk.red(`▼ ${percentageChange.toFixed(2)}%`);
+					priceColor = chalk.red;
+					changeString = chalk.red(`▼ -${volatility.toFixed(2)}%`);
 				} else {
-					changeString = chalk.white("   0.00%"); // Neutral indicator for no change
+					changeString = chalk.white("   0.00%");
 				}
 			}
 
-			// --- Calculate change from INITIAL fetch ---
-			// Only calculate if initialPrices is available and not the same as currentPrices (i.e., not the very first run after initialPrices was set).
 			const initialPrice = initialPrices?.[id]?.[config.currency];
 			if (initialPrice !== undefined && initialPrices !== currentPrices) {
+				const totalPercentageChange =
+					((currentPrice - initialPrice) / initialPrice) * 100;
 				if (currentPrice > initialPrice) {
-					const totalPercentageChange =
-						((currentPrice - initialPrice) / initialPrice) * 100;
 					totalChangeString = chalk.green(
 						`▲ +${totalPercentageChange.toFixed(2)}%`,
 					);
 				} else if (currentPrice < initialPrice) {
-					const totalPercentageChange =
-						((currentPrice - initialPrice) / initialPrice) * 100;
 					totalChangeString = chalk.red(
 						`▼ ${totalPercentageChange.toFixed(2)}%`,
 					);
 				} else {
-					totalChangeString = chalk.white("   0.00%"); // Neutral indicator for no change
+					totalChangeString = chalk.white("   0.00%");
 				}
 			}
 
-			tableData.push({
-				Symbol: chalk.blue(symbol),
-				Price: priceColor(currentPrice),
-				Currency: chalk.yellow(config.currency.toUpperCase()),
-				"% Change": changeString,
-				"Total % Change": totalChangeString,
+			intermediateData.push({
+				symbol,
+				price: priceColor(currentPrice),
+				currency: chalk.yellow(config.currency.toUpperCase()),
+				change: changeString,
+				totalChange: totalChangeString,
+				volatility, // Keep raw volatility for sorting
 			});
 		} else {
-			// Log a warning if price data is missing for a specific coin.
 			console.log(
 				chalk.yellow(`Warning: Could not find price data for: ${id}.`),
 			);
 		}
 	}
+
+	// --- Pass 2: Create a volatility rank map ---
+	const rankMap = new Map<string, number>();
+	if (previousPrices !== null) {
+		// Create a copy of the data to sort without affecting the original order
+		[...intermediateData]
+			.sort((a, b) => b.volatility - a.volatility)
+			.forEach((data, index) => {
+				rankMap.set(data.symbol, index + 1); // Rank is 1-based index
+			});
+	}
+
+	// --- Pass 3: Build final table data with ranks ---
+	const tableData = intermediateData.map((data) => ({
+		Symbol: chalk.blue(data.symbol),
+		Price: data.price,
+		Currency: data.currency,
+		"% Change": data.change,
+		"Total % Change": data.totalChange,
+		"Volatility Index":
+			previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.symbol),
+	}));
 
 	// Display the collected price data in a table.
 	if (tableData.length > 0) {
