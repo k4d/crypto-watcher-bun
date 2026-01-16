@@ -6,27 +6,86 @@ import chalk from "chalk";
 import config from "@/config";
 import type { TransformedBinanceResponse } from "@/types";
 
+// Stores the prices from the previous fetch to compare against current prices.
+let previousPrices: TransformedBinanceResponse | null = null;
+// Stores the prices from the very first fetch to compare against current prices.
+let initialPrices: TransformedBinanceResponse | null = null;
+
 /**
  * Logs the prices of cryptocurrencies to the console in a tabular format.
- * @param prices - The transformed price data from the API.
+ * It also colors the price based on changes compared to the previous fetch:
+ * - Green if the price increased.
+ * - Red if the price decreased.
+ * - White (default) if the price remained the same or on the first fetch.
+ * @param currentPrices - The transformed price data from the current API fetch.
  */
-export function logPriceData(prices: TransformedBinanceResponse) {
+export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	console.log(chalk.gray(`\nTask run at ${new Date().toLocaleTimeString()}`));
+
+	// Store initial prices on the very first run.
+	if (initialPrices === null) {
+		initialPrices = currentPrices;
+	}
 
 	const coinSymbols = Object.keys(config.coins);
 	const tableData = [];
 
 	// Iterate through each configured coin and collect its price data.
 	for (const id of coinSymbols) {
-		// Check if price data is available for the current coin and currency.
-		if (prices[id]?.[config.currency]) {
-			const price = prices[id][config.currency];
-			const symbol = config.coins[id];
+		const currentPrice = currentPrices[id]?.[config.currency];
+		const symbol = config.coins[id];
+
+		// Only proceed if we have a valid price for the current coin.
+		if (currentPrice !== undefined) {
+			let priceColor = chalk.white; // Default color function is white
+			let changeString = chalk.gray("N/A"); // Default for first run
+			let totalChangeString = chalk.gray("N/A"); // Default for first run
+
+			// --- Calculate change from PREVIOUS fetch ---
+			const oldPrice = previousPrices?.[id]?.[config.currency];
+			if (oldPrice !== undefined) {
+				if (currentPrice > oldPrice) {
+					const percentageChange =
+						((currentPrice - oldPrice) / oldPrice) * 100;
+					priceColor = chalk.green; // Price went up
+					changeString = chalk.green(`▲ +${percentageChange.toFixed(2)}%`);
+				} else if (currentPrice < oldPrice) {
+					const percentageChange =
+						((currentPrice - oldPrice) / oldPrice) * 100;
+					priceColor = chalk.red; // Price went down
+					changeString = chalk.red(`▼ ${percentageChange.toFixed(2)}%`);
+				} else {
+					changeString = "(0.00%)";
+				}
+			}
+
+			// --- Calculate change from INITIAL fetch ---
+			// Only calculate if initialPrices is available and not the same as currentPrices (i.e., not the very first run after initialPrices was set).
+			const initialPrice = initialPrices?.[id]?.[config.currency];
+			if (initialPrice !== undefined && initialPrices !== currentPrices) {
+				if (currentPrice > initialPrice) {
+					const totalPercentageChange =
+						((currentPrice - initialPrice) / initialPrice) * 100;
+					totalChangeString = chalk.green(
+						`▲ +${totalPercentageChange.toFixed(2)}%`,
+					);
+				} else if (currentPrice < initialPrice) {
+					const totalPercentageChange =
+						((currentPrice - initialPrice) / initialPrice) * 100;
+					totalChangeString = chalk.red(
+						`▼ ${totalPercentageChange.toFixed(2)}%`,
+					);
+				} else {
+					totalChangeString = "(0.00%)";
+				}
+			}
 
 			tableData.push({
-				Symbol: chalk.blue(symbol), // Apply blue color to symbol
-				Price: chalk.green(price), // Apply green color to price
-				Currency: chalk.yellow(config.currency.toUpperCase()), // Apply yellow color to currency
+				Symbol: chalk.blue(symbol),
+				Price: priceColor(currentPrice),
+				Currency: chalk.yellow(config.currency.toUpperCase()),
+				"% Change": changeString,
+				"Total % Change": totalChangeString,
 			});
 		} else {
 			// Log a warning if price data is missing for a specific coin.
@@ -40,6 +99,9 @@ export function logPriceData(prices: TransformedBinanceResponse) {
 	if (tableData.length > 0) {
 		console.table(tableData);
 	}
+
+	// Update previousPrices for the next comparison.
+	previousPrices = currentPrices;
 }
 
 /**
