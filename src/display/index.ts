@@ -10,6 +10,9 @@ import type { TransformedBinanceResponse } from "@/types";
 let previousPrices: TransformedBinanceResponse | null = null;
 // Stores the prices from the very first fetch to compare against current prices.
 let initialPrices: TransformedBinanceResponse | null = null;
+// A counter for the number of times the task has been run.
+let runCount = 0;
+
 
 /**
  * Formats a given price number to a string with appropriate decimal places
@@ -41,7 +44,10 @@ function formatPrice(price: number): string {
  * @param currentPrices - The transformed price data from the current API fetch.
  */
 export function logPriceData(currentPrices: TransformedBinanceResponse) {
-	console.log(chalk.gray(`\nTask run at ${new Date().toLocaleTimeString()}`));
+	runCount++;
+	console.log(
+		chalk.gray(`\n[${runCount}] Task run at ${new Date().toLocaleTimeString()}`),
+	);
 
 	// Store initial prices on the very first run.
 	if (initialPrices === null) {
@@ -148,7 +154,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			Currency: chalk.yellow(config.currency.toUpperCase()),
 			"% Change": changeString,
 			"Total % Change": totalChangeString,
-			"Volatility Index":
+			"Volatility#":
 				previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
 		};
 	});
