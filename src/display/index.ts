@@ -144,7 +144,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 		return {
 			Symbol: chalk.blue(data.symbol),
 			Price: priceColor(formatPrice(currentPrice)),
-			"24h H/L/A": `${chalk.green(
+			"24h High/Low/AVG": `${chalk.green(
 				formatPrice(data.priceData.high).padEnd(maxHighLen),
 			)} ${chalk.red(
 				formatPrice(data.priceData.low).padEnd(maxLowLen),
@@ -153,7 +153,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			)}`,
 			Currency: chalk.yellow(config.currency.toUpperCase()),
 			"% Change": changeString,
-			"Total % Change": totalChangeString,
+			"Session % Change": totalChangeString,
 			"Volatility#":
 				previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
 		};
