@@ -6,12 +6,15 @@ import { z } from "zod";
 // --- Zod Schemas for API Validation ---
 
 /**
- * Zod schema for a single ticker object from the Binance API.
- * Ensures that the API response for a ticker has a 'symbol' and a 'price'.
+ * Zod schema for a single ticker object from the Binance `/api/v3/ticker/24hr` endpoint.
+ * Ensures the response has the required price fields.
  */
-export const BinanceTickerSchema = z.object({
+export const Binance24hrTickerSchema = z.object({
 	symbol: z.string(),
-	price: z.string(),
+	lastPrice: z.string(),
+	highPrice: z.string(),
+	lowPrice: z.string(),
+	weightedAvgPrice: z.string(),
 });
 
 /**
@@ -26,9 +29,9 @@ export const BinanceErrorSchema = z.object({
 // --- Inferred TypeScript Types ---
 
 /**
- * Type for a single ticker from the Binance API, inferred from the Zod schema.
+ * Type for a single 24hr ticker from the Binance API, inferred from the Zod schema.
  */
-export type BinanceTicker = z.infer<typeof BinanceTickerSchema>;
+export type Binance24hrTicker = z.infer<typeof Binance24hrTickerSchema>;
 
 /**
  * Type for a Binance API error response, inferred from the Zod schema.
@@ -38,16 +41,22 @@ export type BinanceError = z.infer<typeof BinanceErrorSchema>;
 // --- Internal Application Types ---
 
 /**
- * Defines the structure for the transformed response, used internally in the application.
- * This makes it easier to work with the data after it has been fetched and validated.
+ * Defines the structure for a single coin's detailed price data, used internally.
+ */
+export interface PriceData {
+	current: number;
+	high: number;
+	low: number;
+	avg: number;
+}
+
+/**
+ * Defines the structure for the transformed response, mapping a symbol to its detailed price data.
  * @example
  * {
- *   "BTCUSDT": { "USDT": 97000.00 },
- *   "ETHUSDT": { "USDT": 3400.50 }
+ *   "BTCUSDT": { current: 97000, high: 98000, low: 96000, avg: 97500 },
  * }
  */
 export interface TransformedBinanceResponse {
-	[symbol: string]: {
-		[currency: string]: number;
-	};
+	[symbol: string]: PriceData;
 }

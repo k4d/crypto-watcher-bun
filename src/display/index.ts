@@ -12,8 +12,32 @@ let previousPrices: TransformedBinanceResponse | null = null;
 let initialPrices: TransformedBinanceResponse | null = null;
 
 /**
- * Logs the prices of cryptocurrencies to the console in a tabular format.
- * It also colors the price based on changes and shows volatility ranks.
+ * Formats a given price number to a string with appropriate decimal places
+ * based on its magnitude for better readability.
+ * - For prices > 10000, uses 1 decimal place.
+ * - For prices > 100, uses 2 decimal places.
+ * - For prices > 1, uses 3 decimal places.
+ * - For prices < 1 but >= 0.01, uses 4 decimal places.
+ * - For prices < 0.01, uses 5 decimal places.
+ * @param price The price number to format.
+ * @returns The formatted price as a string.
+ */
+function formatPrice(price: number): string {
+	if (price > 10000) {
+		return price.toFixed(1);
+	} else if (price > 100) {
+		return price.toFixed(2);
+	} else if (price > 1) {
+		return price.toFixed(3);
+	} else if (price < 0.01) {
+		return price.toFixed(5);
+	} else {
+		return price.toFixed(4);
+	}
+}
+
+/**
+ * Logs the prices and 24h statistics of cryptocurrencies to the console in a tabular format.
  * @param currentPrices - The transformed price data from the current API fetch.
  */
 export function logPriceData(currentPrices: TransformedBinanceResponse) {
@@ -27,55 +51,25 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	const coinSymbols = Object.keys(config.coins);
 	const intermediateData = [];
 
-	// --- Pass 1: Collect data and calculate volatility ---
+	// --- Pass 1: Collect all data for processing ---
 	for (const id of coinSymbols) {
-		const currentPrice = currentPrices[id]?.[config.currency];
+		const priceData = currentPrices[id];
 		const symbol = config.coins[id];
 
-		if (currentPrice !== undefined) {
-			let priceColor = chalk.white;
-			let changeString = chalk.gray("N/A");
-			let totalChangeString = chalk.gray("N/A");
+		if (priceData) {
+			const currentPrice = priceData.current;
 			let volatility = 0;
+			const oldPrice = previousPrices?.[id]?.current;
 
-			const oldPrice = previousPrices?.[id]?.[config.currency];
 			if (oldPrice !== undefined) {
 				volatility = Math.abs(((currentPrice - oldPrice) / oldPrice) * 100);
-				if (currentPrice > oldPrice) {
-					priceColor = chalk.green;
-					changeString = chalk.green(`▲ +${volatility.toFixed(2)}%`);
-				} else if (currentPrice < oldPrice) {
-					priceColor = chalk.red;
-					changeString = chalk.red(`▼ -${volatility.toFixed(2)}%`);
-				} else {
-					changeString = chalk.white("   0.00%");
-				}
-			}
-
-			const initialPrice = initialPrices?.[id]?.[config.currency];
-			if (initialPrice !== undefined && initialPrices !== currentPrices) {
-				const totalPercentageChange =
-					((currentPrice - initialPrice) / initialPrice) * 100;
-				if (currentPrice > initialPrice) {
-					totalChangeString = chalk.green(
-						`▲ +${totalPercentageChange.toFixed(2)}%`,
-					);
-				} else if (currentPrice < initialPrice) {
-					totalChangeString = chalk.red(
-						`▼ ${totalPercentageChange.toFixed(2)}%`,
-					);
-				} else {
-					totalChangeString = chalk.white("   0.00%");
-				}
 			}
 
 			intermediateData.push({
+				id,
 				symbol,
-				price: priceColor(currentPrice),
-				currency: chalk.yellow(config.currency.toUpperCase()),
-				change: changeString,
-				totalChange: totalChangeString,
-				volatility, // Keep raw volatility for sorting
+				priceData,
+				volatility,
 			});
 		} else {
 			console.log(
@@ -84,27 +78,80 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 		}
 	}
 
-	// --- Pass 2: Create a volatility rank map ---
+	// --- Pass 2: Calculate max lengths and volatility ranks ---
+	let maxHighLen = 0;
+	let maxLowLen = 0;
+	let maxAvgLen = 0;
 	const rankMap = new Map<string, number>();
+
+	for (const data of intermediateData) {
+		maxHighLen = Math.max(maxHighLen, formatPrice(data.priceData.high).length);
+		maxLowLen = Math.max(maxLowLen, formatPrice(data.priceData.low).length);
+		maxAvgLen = Math.max(maxAvgLen, formatPrice(data.priceData.avg).length);
+	}
+
 	if (previousPrices !== null) {
-		// Create a copy of the data to sort without affecting the original order
 		[...intermediateData]
 			.sort((a, b) => b.volatility - a.volatility)
 			.forEach((data, index) => {
-				rankMap.set(data.symbol, index + 1); // Rank is 1-based index
+				rankMap.set(data.id, index + 1);
 			});
 	}
 
-	// --- Pass 3: Build final table data with ranks ---
-	const tableData = intermediateData.map((data) => ({
-		Symbol: chalk.blue(data.symbol),
-		Price: data.price,
-		Currency: data.currency,
-		"% Change": data.change,
-		"Total % Change": data.totalChange,
-		"Volatility Index":
-			previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.symbol),
-	}));
+	// --- Pass 3: Build final table data with all formatting ---
+	const tableData = intermediateData.map((data) => {
+		const currentPrice = data.priceData.current;
+		let priceColor = chalk.white;
+		let changeString = chalk.gray("N/A");
+		let totalChangeString = chalk.gray("N/A");
+
+		const oldPrice = previousPrices?.[data.id]?.current;
+		if (oldPrice !== undefined) {
+			if (currentPrice > oldPrice) {
+				priceColor = chalk.green;
+				changeString = chalk.green(`▲ +${data.volatility.toFixed(2)}%`);
+			} else if (currentPrice < oldPrice) {
+				priceColor = chalk.red;
+				changeString = chalk.red(`▼ -${data.volatility.toFixed(2)}%`);
+			} else {
+				changeString = chalk.white("   0.00%");
+			}
+		}
+
+		const initialPrice = initialPrices?.[data.id]?.current;
+		if (initialPrice !== undefined && initialPrices !== currentPrices) {
+			const totalPercentageChange =
+				((currentPrice - initialPrice) / initialPrice) * 100;
+			if (currentPrice > initialPrice) {
+				totalChangeString = chalk.green(
+					`▲ +${totalPercentageChange.toFixed(2)}%`,
+				);
+			} else if (currentPrice < initialPrice) {
+				totalChangeString = chalk.red(
+					`▼ ${totalPercentageChange.toFixed(2)}%`,
+				);
+			} else {
+				totalChangeString = chalk.white("   0.00%");
+			}
+		}
+
+		return {
+			Symbol: chalk.blue(data.symbol),
+			Price: priceColor(formatPrice(currentPrice)),
+			"24h H/L/A": `${chalk.green(
+				formatPrice(data.priceData.high).padEnd(maxHighLen),
+			)} ${chalk.red(
+				formatPrice(data.priceData.low).padEnd(maxLowLen),
+			)} ${chalk.gray(
+				formatPrice(data.priceData.avg).padEnd(maxAvgLen),
+			)}`,
+			Currency: chalk.yellow(config.currency.toUpperCase()),
+			"% Change": changeString,
+			"Total % Change": totalChangeString,
+			"Volatility Index":
+				previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
+		};
+	});
 
 	// Display the collected price data in a table.
 	if (tableData.length > 0) {
@@ -119,7 +166,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
  * Logs the initial application startup message.
  */
 export function logAppStart() {
-	console.log(chalk.green("Crypto Watcher started. Initial fetch..."));
+        console.log(chalk.green("Crypto Watcher started. Initial fetch..."));
 }
 
 /**
@@ -127,7 +174,7 @@ export function logAppStart() {
  * @param interval - The fetch interval string (e.g., "5m").
  */
 export function logSchedulerStart(interval: string) {
-	console.log(chalk.green(`Scheduler started: fetching every ${interval}`));
+        console.log(chalk.green(`Scheduler started: fetching every ${interval}`));
 }
 
 /**
@@ -135,9 +182,9 @@ export function logSchedulerStart(interval: string) {
  * @param interval - The invalid interval string from the config.
  */
 export function logInvalidIntervalError(interval: string) {
-	console.log(
-		chalk.red(
-			`Неверный формат интервала: ${interval}. Используйте "5m", "1h", или "30s".`,
-		),
-	);
+        console.log(
+                chalk.red(
+                        `Неверный формат интервала: ${interval}. Используйте "5m", "1h", или "30s".`
+                )
+        );
 }

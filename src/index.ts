@@ -4,7 +4,7 @@
  */
 
 import config from "@/config";
-import { fetchCoinData } from "@/api";
+import { fetchTickerData } from "@/api";
 import { startScheduler } from "@/scheduler";
 import { logAppStart, logPriceData } from "@/display";
 
@@ -14,7 +14,7 @@ import { logAppStart, logPriceData } from "@/display";
  */
 async function runTask() {
 	const coinSymbols = Object.keys(config.coins);
-	const prices = await fetchCoinData(coinSymbols);
+	const prices = await fetchTickerData(coinSymbols);
 
 	if (prices) {
 		logPriceData(prices);
