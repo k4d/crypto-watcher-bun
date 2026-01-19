@@ -26,7 +26,27 @@ export const BinanceErrorSchema = z.object({
 	msg: z.string(),
 });
 
+/**
+ * Zod schema for the application configuration (`config.yml`).
+ * Ensures the configuration file has the correct structure and data types.
+ */
+export const ConfigSchema = z.object({
+	currency: z.string().min(1),
+	fetch_interval: z
+		.string()
+		.regex(
+			/^\d+[smh]$/,
+			"Invalid fetch_interval format. Use 's', 'm', or 'h' (e.g., '30s', '5m', '1h').",
+		),
+	coins: z.record(z.string(), z.string().min(1)),
+});
+
 // --- Inferred TypeScript Types ---
+
+/**
+ * Type for the application configuration, inferred from the Zod schema.
+ */
+export type Config = z.infer<typeof ConfigSchema>;
 
 /**
  * Type for a single 24hr ticker from the Binance API, inferred from the Zod schema.

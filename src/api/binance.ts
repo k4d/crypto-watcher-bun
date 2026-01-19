@@ -1,6 +1,5 @@
 import chalk from "chalk";
 import { z, ZodError } from "zod";
-import config from "@/config";
 import {
 	Binance24hrTickerSchema,
 	BinanceErrorSchema,
