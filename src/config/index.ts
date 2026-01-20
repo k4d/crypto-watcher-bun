@@ -2,7 +2,6 @@
  * @file This module loads, parses, and validates the application configuration from `config.yml`.
  */
 
-import fs from "node:fs";
 import YAML from "yaml";
 import { z } from "zod";
 import { ConfigSchema, type Config } from "@/types";
@@ -10,12 +9,15 @@ import chalk from "chalk";
 
 /**
  * Loads, validates, and exports the application's configuration.
+ * Uses Bun's native file I/O for better performance.
  * @returns The validated configuration object.
  * @throws If `config.yml` is missing, malformed, or fails validation.
  */
-function loadConfig(): Config {
+async function loadConfig(): Promise<Config> {
 	try {
-		const rawConfig = YAML.parse(fs.readFileSync("src/config.yml", "utf8"));
+		const file = Bun.file("src/config.yml");
+		const rawConfigText = await file.text(); // Use Bun's native file I/O
+		const rawConfig = YAML.parse(rawConfigText);
 		const validatedConfig = ConfigSchema.parse(rawConfig);
 		return validatedConfig;
 	} catch (error) {
@@ -38,6 +40,6 @@ function loadConfig(): Config {
 	}
 }
 
-const config = loadConfig();
+const config = await loadConfig(); // Use top-level await
 
 export default config;
