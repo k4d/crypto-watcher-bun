@@ -147,3 +147,13 @@ Scheduler started: fetching every 1m
   ```bash
   bun run lint
   ```
+
+## Тестирование
+
+Проект использует встроенный тестовый ранер Bun (`bun:test`), совместимый с Jest `expect` синтаксисом.
+
+Для запуска всех тестов:
+
+```bash
+bun run test
+```
