@@ -8,6 +8,7 @@
 		"start:prod": "bun run dist/index.js",
 		"dev": "bun --watch src/index.ts",
 		"build": "bun build src/index.ts --outdir ./dist --target bun",
+		"test": "bun test",
 		"format": "bunx @biomejs/biome format --write .",
 		"lint": "bunx @biomejs/biome check --write ."
 	},

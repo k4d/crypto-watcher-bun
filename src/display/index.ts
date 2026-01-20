@@ -25,7 +25,7 @@ let runCount = 0;
  * @param price The price number to format.
  * @returns The formatted price as a string.
  */
-function formatPrice(price: number): string {
+export function formatPrice(price: number): string {
 	if (price > 10000) {
 		return price.toFixed(1);
 	} else if (price > 100) {
