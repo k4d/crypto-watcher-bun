@@ -13,7 +13,6 @@ let initialPrices: TransformedBinanceResponse | null = null;
 // A counter for the number of times the task has been run.
 let runCount = 0;
 
-
 /**
  * Formats a given price number to a string with appropriate decimal places
  * based on its magnitude for better readability.
@@ -46,7 +45,9 @@ export function formatPrice(price: number): string {
 export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	runCount++;
 	console.log(
-		chalk.gray(`\n[${runCount}] Task run at ${new Date().toLocaleTimeString()}`),
+		chalk.gray(
+			`\n[${runCount}] Task run at ${new Date().toLocaleTimeString()}`,
+		),
 	);
 
 	// Store initial prices on the very first run.
@@ -133,9 +134,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 					`▲ +${totalPercentageChange.toFixed(2)}%`,
 				);
 			} else if (currentPrice < initialPrice) {
-				totalChangeString = chalk.red(
-					`▼ ${totalPercentageChange.toFixed(2)}%`,
-				);
+				totalChangeString = chalk.red(`▼ ${totalPercentageChange.toFixed(2)}%`);
 			} else {
 				totalChangeString = chalk.white("   0.00%");
 			}
@@ -148,9 +147,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 				formatPrice(data.priceData.high).padEnd(maxHighLen),
 			)} ${chalk.red(
 				formatPrice(data.priceData.low).padEnd(maxLowLen),
-			)} ${chalk.gray(
-				formatPrice(data.priceData.avg).padEnd(maxAvgLen),
-			)}`,
+			)} ${chalk.gray(formatPrice(data.priceData.avg).padEnd(maxAvgLen))}`,
 			Currency: chalk.yellow(config.currency.toUpperCase()),
 			"% Change": changeString,
 			"Session % Change": totalChangeString,
@@ -172,7 +169,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
  * Logs the initial application startup message.
  */
 export function logAppStart() {
-        console.log(chalk.green("Crypto Watcher started. Initial fetch..."));
+	console.log(chalk.green("Crypto Watcher started. Initial fetch..."));
 }
 
 /**
@@ -180,7 +177,7 @@ export function logAppStart() {
  * @param interval - The fetch interval string (e.g., "5m").
  */
 export function logSchedulerStart(interval: string) {
-        console.log(chalk.green(`Scheduler started: fetching every ${interval}`));
+	console.log(chalk.green(`Scheduler started: fetching every ${interval}`));
 }
 
 /**
@@ -188,9 +185,9 @@ export function logSchedulerStart(interval: string) {
  * @param interval - The invalid interval string from the config.
  */
 export function logInvalidIntervalError(interval: string) {
-        console.log(
-                chalk.red(
-                        `Неверный формат интервала: ${interval}. Используйте "5m", "1h", или "30s".`
-                )
-        );
+	console.log(
+		chalk.red(
+			`Неверный формат интервала: ${interval}. Используйте "5m", "1h", или "30s".`,
+		),
+	);
 }
