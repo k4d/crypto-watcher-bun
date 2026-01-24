@@ -158,7 +158,11 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 
 	// Display the collected price data in a table.
 	if (tableData.length > 0) {
-		console.table(tableData);
+		const tableObject = {};
+		tableData.forEach((row, index) => {
+			tableObject[index + 1] = row;
+		});
+		console.table(tableObject);
 	}
 
 	// Update previousPrices for the next comparison.
