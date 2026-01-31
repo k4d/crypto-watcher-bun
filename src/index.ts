@@ -3,10 +3,10 @@
  * It coordinates the config, api, display, and scheduler modules to run the crypto watcher.
  */
 
-import config from "@/config";
 import { fetchTickerData } from "@/api";
-import { startScheduler } from "@/scheduler";
+import config from "@/config";
 import { logAppStart, logPriceData } from "@/display";
+import { startScheduler } from "@/scheduler";
 
 /**
  * The main task function that is executed on each scheduled interval.

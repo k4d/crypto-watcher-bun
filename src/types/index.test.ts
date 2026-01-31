@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { ConfigSchema } from "./index"; // Use relative import for test file
 import { z } from "zod";
+import { ConfigSchema } from "./index"; // Use relative import for test file
 
 test("ConfigSchema validates a correct configuration", () => {
 	const validConfig = {

@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { z, ZodError } from "zod";
+import { ZodError, z } from "zod";
 import {
 	Binance24hrTickerSchema,
 	BinanceErrorSchema,

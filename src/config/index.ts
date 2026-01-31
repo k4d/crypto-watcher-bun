@@ -2,10 +2,10 @@
  * @file This module loads, parses, and validates the application configuration from `config.yml`.
  */
 
+import chalk from "chalk";
 import YAML from "yaml";
 import { z } from "zod";
-import { ConfigSchema, type Config } from "@/types";
-import chalk from "chalk";
+import { type Config, ConfigSchema } from "@/types";
 
 /**
  * Loads, validates, and exports the application's configuration.

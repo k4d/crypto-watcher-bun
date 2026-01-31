@@ -1,8 +1,8 @@
-import { test, expect, vi, beforeEach } from "bun:test";
-import { startScheduler } from "./index";
+import { beforeEach, expect, test, vi } from "bun:test";
 import cron from "node-cron";
 import config from "@/config";
-import { logSchedulerStart, logInvalidIntervalError } from "@/display";
+import { logInvalidIntervalError, logSchedulerStart } from "@/display";
+import { startScheduler } from "./index";
 
 // Mock the modules we depend on
 vi.mock("node-cron", () => ({
@@ -66,7 +66,13 @@ test("startScheduler should schedule a task for hours", () => {
 
 test("startScheduler should call error log for invalid interval", () => {
 	// Mock process.exit to prevent the test runner from exiting
-	const exitMock = vi.spyOn(process, "exit").mockImplementation((() => {}) as any);
+	const exitMock = vi
+		.spyOn(process, "exit")
+		.mockImplementation((_code?: number): never => {
+			// Do nothing, just return, so the test runner doesn't exit prematurely.
+			// The spy will still record that it was called.
+			return undefined as never;
+		});
 
 	mockConfig("10years");
 	const task = () => {};
