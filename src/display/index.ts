@@ -69,7 +69,9 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			const oldPrice = previousPrices?.[id]?.current;
 
 			if (oldPrice !== undefined) {
-				volatility = Math.abs(((currentPrice - oldPrice) / oldPrice) * 100);
+				volatility = Math.abs(
+					((currentPrice - oldPrice) / oldPrice) * 100,
+				);
 			}
 
 			intermediateData.push({
@@ -92,7 +94,10 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	const rankMap = new Map<string, number>();
 
 	for (const data of intermediateData) {
-		maxHighLen = Math.max(maxHighLen, formatPrice(data.priceData.high).length);
+		maxHighLen = Math.max(
+			maxHighLen,
+			formatPrice(data.priceData.high).length,
+		);
 		maxLowLen = Math.max(maxLowLen, formatPrice(data.priceData.low).length);
 		maxAvgLen = Math.max(maxAvgLen, formatPrice(data.priceData.avg).length);
 	}
@@ -134,7 +139,9 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 					`▲ +${totalPercentageChange.toFixed(2)}%`,
 				);
 			} else if (currentPrice < initialPrice) {
-				totalChangeString = chalk.red(`▼ ${totalPercentageChange.toFixed(2)}%`);
+				totalChangeString = chalk.red(
+					`▼ ${totalPercentageChange.toFixed(2)}%`,
+				);
 			} else {
 				totalChangeString = chalk.white("   0.00%");
 			}
@@ -151,8 +158,10 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			Currency: chalk.yellow(config.currency.toUpperCase()),
 			"% Change": changeString,
 			"Session % Change": totalChangeString,
-			"Volatility#":
-				previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
+			"V#":
+				previousPrices === null
+					? chalk.gray("N/A")
+					: rankMap.get(data.id),
 		};
 	});
 
