@@ -158,8 +158,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			)} ${chalk.red(
 				formatPrice(data.priceData.low).padEnd(maxLowLen),
 			)} ${chalk.gray(formatPrice(data.priceData.avg).padEnd(maxAvgLen))}`,
-			"% Change": changeString,
-			"Session % Change": totalChangeString,
+			"% Change Session": `${changeString}  ${totalChangeString}`,
 			"V#": previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
 		};
 	});
