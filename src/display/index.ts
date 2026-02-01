@@ -5,6 +5,7 @@
 import chalk from "chalk";
 import config from "@/config";
 import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
+import pkg from "../../package.json";
 
 // Stores the prices from the previous fetch to compare against current prices.
 let previousPrices: TransformedBinanceResponse | null = null;
@@ -177,10 +178,12 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 }
 
 /**
- * Logs the initial application startup message.
+ * Logs the initial application startup message, including the version number.
  */
 export function logAppStart() {
-	console.log(chalk.green("Crypto Watcher started. Initial fetch..."));
+	console.log(
+		chalk.green(`Crypto Watcher v${pkg.version} started. Initial fetch...`),
+	);
 }
 
 /**
