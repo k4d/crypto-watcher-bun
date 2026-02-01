@@ -155,20 +155,22 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 		// 15m and 30m change
 		const history = priceHistory[data.id] || [];
 		const findPriceAgo = (ms: number) =>
-			history.find((entry) => now - entry.timestamp >= ms);
+			history.findLast((entry) => now - entry.timestamp >= ms);
 
+		let change15m = 0;
 		let change15mString = chalk.gray("N/A");
 		const price15mAgo = findPriceAgo(FIFTEEN_MINUTES_MS);
 		if (price15mAgo) {
-			const change15m =
+			change15m =
 				((currentPrice - price15mAgo.price) / price15mAgo.price) * 100;
 			change15mString = formatChange(change15m);
 		}
 
 		let change30mString = chalk.gray("N/A");
+		let change30m = 0;
 		const price30mAgo = findPriceAgo(THIRTY_MINUTES_MS);
 		if (price30mAgo) {
-			const change30m =
+			change30m =
 				((currentPrice - price30mAgo.price) / price30mAgo.price) * 100;
 			change30mString = formatChange(change30m);
 		}
@@ -180,6 +182,14 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			const sessionChange =
 				((currentPrice - initialPrice) / initialPrice) * 100;
 			sessionChangeString = formatChange(sessionChange);
+		}
+
+		// --- Signal Generation (Illustrative) ---
+		let signalString = chalk.gray("Neutral");
+		if (change15m > 1 && change30m > 1) {
+			signalString = chalk.green.bold("Buy");
+		} else if (change15m < -1 && change30m < -1) {
+			signalString = chalk.red.bold("Sell");
 		}
 
 		return {
@@ -194,6 +204,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			)} ${chalk.gray(formatPrice(data.priceData.avg).padEnd(maxAvgLen))}`,
 			[`% Change ${config.fetch_interval}/15m/30m/Session`]: `${changeString} ${change15mString} ${change30mString} ${sessionChangeString}`,
 			"V#": previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
+			Signal: signalString,
 		};
 	});
 
