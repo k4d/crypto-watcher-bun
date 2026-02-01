@@ -4,7 +4,7 @@
 
 import chalk from "chalk";
 import config from "@/config";
-import type { TransformedBinanceResponse } from "@/types";
+import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
 
 // Stores the prices from the previous fetch to compare against current prices.
 let previousPrices: TransformedBinanceResponse | null = null;
@@ -56,22 +56,20 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	}
 
 	const coinSymbols = Object.keys(config.coins);
-	const intermediateData = [];
+	const intermediateData: IntermediateDataItem[] = [];
 
 	// --- Pass 1: Collect all data for processing ---
 	for (const id of coinSymbols) {
 		const priceData = currentPrices[id];
-		const symbol = config.coins[id];
+		const symbol = config.coins[id]; // config.coins[id] can be inferred as string | undefined
 
-		if (priceData) {
+		if (priceData && symbol) {
 			const currentPrice = priceData.current;
 			let volatility = 0;
 			const oldPrice = previousPrices?.[id]?.current;
 
 			if (oldPrice !== undefined) {
-				volatility = Math.abs(
-					((currentPrice - oldPrice) / oldPrice) * 100,
-				);
+				volatility = Math.abs(((currentPrice - oldPrice) / oldPrice) * 100);
 			}
 
 			intermediateData.push({
@@ -91,15 +89,19 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	let maxHighLen = 0;
 	let maxLowLen = 0;
 	let maxAvgLen = 0;
+	let maxBaseSymbolLen = 0; // New variable for base symbol padding
+	const quoteSymbol = config.currency.toUpperCase(); // Quote symbol (e.g., "USDT")
+	// Note: maxQuoteSymbolLen is not strictly needed if we don't pad it.
+
 	const rankMap = new Map<string, number>();
 
 	for (const data of intermediateData) {
-		maxHighLen = Math.max(
-			maxHighLen,
-			formatPrice(data.priceData.high).length,
-		);
+		maxHighLen = Math.max(maxHighLen, formatPrice(data.priceData.high).length);
 		maxLowLen = Math.max(maxLowLen, formatPrice(data.priceData.low).length);
 		maxAvgLen = Math.max(maxAvgLen, formatPrice(data.priceData.avg).length);
+		if (data.symbol) {
+			maxBaseSymbolLen = Math.max(maxBaseSymbolLen, data.symbol.length); // Calculate max length for base symbol
+		}
 	}
 
 	if (previousPrices !== null) {
@@ -139,29 +141,25 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 					`▲ +${totalPercentageChange.toFixed(2)}%`,
 				);
 			} else if (currentPrice < initialPrice) {
-				totalChangeString = chalk.red(
-					`▼ ${totalPercentageChange.toFixed(2)}%`,
-				);
+				totalChangeString = chalk.red(`▼ ${totalPercentageChange.toFixed(2)}%`);
 			} else {
 				totalChangeString = chalk.white("   0.00%");
 			}
 		}
 
 		return {
-			Symbol: chalk.blue(data.symbol),
+			Symbol: `${chalk.blue(
+				data.symbol.padEnd(maxBaseSymbolLen),
+			)} ${chalk.yellow(quoteSymbol)}`,
 			Price: priceColor(formatPrice(currentPrice)),
 			"24h High/Low/AVG": `${chalk.green(
 				formatPrice(data.priceData.high).padEnd(maxHighLen),
 			)} ${chalk.red(
 				formatPrice(data.priceData.low).padEnd(maxLowLen),
 			)} ${chalk.gray(formatPrice(data.priceData.avg).padEnd(maxAvgLen))}`,
-			Currency: chalk.yellow(config.currency.toUpperCase()),
 			"% Change": changeString,
 			"Session % Change": totalChangeString,
-			"V#":
-				previousPrices === null
-					? chalk.gray("N/A")
-					: rankMap.get(data.id),
+			"V#": previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
 		};
 	});
 

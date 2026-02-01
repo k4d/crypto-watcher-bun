@@ -71,6 +71,17 @@ export interface PriceData {
 }
 
 /**
+ * Defines the structure for data collected in the first pass of logPriceData,
+ * before final table construction and ranking.
+ */
+export interface IntermediateDataItem {
+	id: string; // The original ID from config.coins
+	symbol: string; // The base symbol (e.g., "BTC")
+	priceData: PriceData; // The detailed price data for the coin
+	volatility: number; // Calculated volatility
+}
+
+/**
  * Defines the structure for the transformed response, mapping a symbol to its detailed price data.
  * @example
  * {
