@@ -13,6 +13,10 @@ let previousPrices: TransformedBinanceResponse | null = null;
 let initialPrices: TransformedBinanceResponse | null = null;
 // A counter for the number of times the task has been run.
 let runCount = 0;
+// Stores a history of prices to calculate changes over different timeframes.
+const priceHistory: {
+	[symbolId: string]: { timestamp: number; price: number }[];
+} = {};
 
 /**
  * Formats a given price number to a string with appropriate decimal places
@@ -58,11 +62,15 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 
 	const coinSymbols = Object.keys(config.coins);
 	const intermediateData: IntermediateDataItem[] = [];
+	const now = Date.now();
+	const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+	const THIRTY_MINUTES_MS = 30 * 60 * 1000;
+	const HISTORY_PRUNE_MS = 35 * 60 * 1000; // Keep 35 mins of history
 
-	// --- Pass 1: Collect all data for processing ---
+	// --- Pass 1: Collect data and update history ---
 	for (const id of coinSymbols) {
 		const priceData = currentPrices[id];
-		const symbol = config.coins[id]; // config.coins[id] can be inferred as string | undefined
+		const symbol = config.coins[id];
 
 		if (priceData && symbol) {
 			const currentPrice = priceData.current;
@@ -71,6 +79,20 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 
 			if (oldPrice !== undefined) {
 				volatility = Math.abs(((currentPrice - oldPrice) / oldPrice) * 100);
+			}
+
+			// Update and prune price history
+			if (!priceHistory[id]) {
+				priceHistory[id] = [];
+			}
+			const history = priceHistory[id]; // Use a local variable for type safety
+			history.push({ timestamp: now, price: currentPrice });
+			while (
+				history.length > 0 &&
+				history[0] !== undefined && // Explicit check for undefined
+				now - history[0].timestamp > HISTORY_PRUNE_MS
+			) {
+				history.shift();
 			}
 
 			intermediateData.push({
@@ -90,19 +112,24 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	let maxHighLen = 0;
 	let maxLowLen = 0;
 	let maxAvgLen = 0;
-	let maxBaseSymbolLen = 0; // New variable for base symbol padding
-	const quoteSymbol = config.currency.toUpperCase(); // Quote symbol (e.g., "USDT")
-	// Note: maxQuoteSymbolLen is not strictly needed if we don't pad it.
-
+	let maxBaseSymbolLen = 0;
+	const quoteSymbol = config.currency.toUpperCase();
 	const rankMap = new Map<string, number>();
 
 	for (const data of intermediateData) {
-		maxHighLen = Math.max(maxHighLen, formatPrice(data.priceData.high).length);
-		maxLowLen = Math.max(maxLowLen, formatPrice(data.priceData.low).length);
-		maxAvgLen = Math.max(maxAvgLen, formatPrice(data.priceData.avg).length);
-		if (data.symbol) {
-			maxBaseSymbolLen = Math.max(maxBaseSymbolLen, data.symbol.length); // Calculate max length for base symbol
-		}
+		maxHighLen = Math.max(
+			maxHighLen,
+			formatPrice(data.priceData.high).length,
+		);
+		maxLowLen = Math.max(
+			maxLowLen,
+			formatPrice(data.priceData.low).length,
+		);
+		maxAvgLen = Math.max(
+			maxAvgLen,
+			formatPrice(data.priceData.avg).length,
+		);
+		maxBaseSymbolLen = Math.max(maxBaseSymbolLen, data.symbol.length);
 	}
 
 	if (previousPrices !== null) {
@@ -117,35 +144,51 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	const tableData = intermediateData.map((data) => {
 		const currentPrice = data.priceData.current;
 		let priceColor = chalk.white;
-		let changeString = chalk.gray("N/A");
-		let totalChangeString = chalk.gray("N/A");
 
+		const formatChange = (change: number) => {
+			if (change > 0) return chalk.green(`▲ +${change.toFixed(2)}%`);
+			if (change < 0) return chalk.red(`▼ ${change.toFixed(2)}%`);
+			return chalk.white("   0.00%");
+		};
+
+		// Change from previous fetch
+		let changeString = chalk.gray("N/A");
 		const oldPrice = previousPrices?.[data.id]?.current;
 		if (oldPrice !== undefined) {
-			if (currentPrice > oldPrice) {
-				priceColor = chalk.green;
-				changeString = chalk.green(`▲ +${data.volatility.toFixed(2)}%`);
-			} else if (currentPrice < oldPrice) {
-				priceColor = chalk.red;
-				changeString = chalk.red(`▼ -${data.volatility.toFixed(2)}%`);
-			} else {
-				changeString = chalk.white("   0.00%");
-			}
+			const change = ((currentPrice - oldPrice) / oldPrice) * 100;
+			if (change > 0) priceColor = chalk.green;
+			if (change < 0) priceColor = chalk.red;
+			changeString = formatChange(change);
 		}
 
+		// 15m and 30m change
+		const history = priceHistory[data.id] || [];
+		const findPriceAgo = (ms: number) =>
+			history.find((entry) => now - entry.timestamp >= ms);
+
+		let change15mString = chalk.gray("N/A");
+		const price15mAgo = findPriceAgo(FIFTEEN_MINUTES_MS);
+		if (price15mAgo) {
+			const change15m =
+				((currentPrice - price15mAgo.price) / price15mAgo.price) * 100;
+			change15mString = formatChange(change15m);
+		}
+
+		let change30mString = chalk.gray("N/A");
+		const price30mAgo = findPriceAgo(THIRTY_MINUTES_MS);
+		if (price30mAgo) {
+			const change30m =
+				((currentPrice - price30mAgo.price) / price30mAgo.price) * 100;
+			change30mString = formatChange(change30m);
+		}
+
+		// Session change
+		let sessionChangeString = chalk.gray("N/A");
 		const initialPrice = initialPrices?.[data.id]?.current;
 		if (initialPrice !== undefined && initialPrices !== currentPrices) {
-			const totalPercentageChange =
+			const sessionChange =
 				((currentPrice - initialPrice) / initialPrice) * 100;
-			if (currentPrice > initialPrice) {
-				totalChangeString = chalk.green(
-					`▲ +${totalPercentageChange.toFixed(2)}%`,
-				);
-			} else if (currentPrice < initialPrice) {
-				totalChangeString = chalk.red(`▼ ${totalPercentageChange.toFixed(2)}%`);
-			} else {
-				totalChangeString = chalk.white("   0.00%");
-			}
+			sessionChangeString = formatChange(sessionChange);
 		}
 
 		return {
@@ -158,7 +201,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			)} ${chalk.red(
 				formatPrice(data.priceData.low).padEnd(maxLowLen),
 			)} ${chalk.gray(formatPrice(data.priceData.avg).padEnd(maxAvgLen))}`,
-			"% Change Session": `${changeString}  ${totalChangeString}`,
+			[`% Change ${config.fetch_interval}/15m/30m/Session`]: `${changeString} ${change15mString} ${change30mString} ${sessionChangeString}`,
 			"V#": previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
 		};
 	});
