@@ -117,18 +117,9 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	const rankMap = new Map<string, number>();
 
 	for (const data of intermediateData) {
-		maxHighLen = Math.max(
-			maxHighLen,
-			formatPrice(data.priceData.high).length,
-		);
-		maxLowLen = Math.max(
-			maxLowLen,
-			formatPrice(data.priceData.low).length,
-		);
-		maxAvgLen = Math.max(
-			maxAvgLen,
-			formatPrice(data.priceData.avg).length,
-		);
+		maxHighLen = Math.max(maxHighLen, formatPrice(data.priceData.high).length);
+		maxLowLen = Math.max(maxLowLen, formatPrice(data.priceData.low).length);
+		maxAvgLen = Math.max(maxAvgLen, formatPrice(data.priceData.avg).length);
 		maxBaseSymbolLen = Math.max(maxBaseSymbolLen, data.symbol.length);
 	}
 
