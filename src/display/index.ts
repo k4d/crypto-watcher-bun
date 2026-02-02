@@ -85,15 +85,10 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			if (!priceHistory[id]) {
 				priceHistory[id] = [];
 			}
-			const history = priceHistory[id]; // Use a local variable for type safety
-			history.push({ timestamp: now, price: currentPrice });
-			while (
-				history.length > 0 &&
-				history[0] !== undefined && // Explicit check for undefined
-				now - history[0].timestamp > HISTORY_PRUNE_MS
-			) {
-				history.shift();
-			}
+			priceHistory[id].push({ timestamp: now, price: currentPrice });
+			priceHistory[id] = priceHistory[id].filter(
+				(entry) => now - entry.timestamp <= HISTORY_PRUNE_MS,
+			);
 
 			intermediateData.push({
 				id,
