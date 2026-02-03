@@ -6,9 +6,9 @@
   "version": "1.1.0",
   "scripts": {
     "start": "bun run src/index.ts",
-    "start:prod": "bun run dist/index.js",
-    "dev": "bun --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "start:prod": "NODE_ENV=production bun run dist/index.js",
+    "dev": "NODE_ENV=development bun --watch src/index.ts",
+    "build": "NODE_ENV=production bun build src/index.ts --outdir ./dist --target bun",
     "test": "bun test",
     "prepare": "husky install",
     "format": "bunx @biomejs/biome format --write src",

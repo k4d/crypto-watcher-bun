@@ -38,4 +38,19 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 # Gemini generated files
+
 GEMINI.md
+
+
+
+# Environment variables
+
+.env*
+
+
+
+# SQLite database
+
+*.sqlite
+
+*.sqlite-journal

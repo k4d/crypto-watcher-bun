@@ -17,11 +17,11 @@ async function runTask() {
 	const prices = await fetchTickerData(coinSymbols);
 
 	if (prices) {
-		logPriceData(prices);
+		await logPriceData(prices);
 	}
 }
 
 // --- Application Startup ---
 logAppStart();
-runTask(); // Execute the task immediately on startup.
+await runTask(); // Execute the task immediately on startup.
 startScheduler(runTask); // Set up and start the recurring task scheduler.

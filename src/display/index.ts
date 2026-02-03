@@ -4,19 +4,32 @@
 
 import chalk from "chalk";
 import config from "@/config";
+import db from "@/database"; // Import the database instance
 import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
 import pkg from "../../package.json";
 
-// Stores the prices from the previous fetch to compare against current prices.
-let previousPrices: TransformedBinanceResponse | null = null;
-// Stores the prices from the very first fetch to compare against current prices.
-let initialPrices: TransformedBinanceResponse | null = null;
-// A counter for the number of times the task has been run.
-let runCount = 0;
-// Stores a history of prices to calculate changes over different timeframes.
-const priceHistory: {
-	[symbolId: string]: { timestamp: number; price: number }[];
-} = {};
+// --- Helper Functions for DB State Management ---
+
+function getState(key: string): TransformedBinanceResponse | null {
+	const query = db.query("SELECT value FROM key_value_store WHERE key = ?1;");
+	const result = query.get(key) as { value: string } | null;
+	return result ? JSON.parse(result.value) : null;
+}
+
+function setState(key: string, value: TransformedBinanceResponse) {
+	const query = db.query(
+		"INSERT OR REPLACE INTO key_value_store (key, value) VALUES (?1, ?2);",
+	);
+	query.run(key, JSON.stringify(value));
+}
+
+function getRunCount(): number {
+	const query = db.query(
+		"INSERT INTO key_value_store (key, value) VALUES ('runCount', '0') ON CONFLICT(key) DO UPDATE SET value = CAST(value AS INTEGER) + 1 RETURNING value;",
+	);
+	const result = query.get() as { value: string };
+	return parseInt(result.value, 10);
+}
 
 /**
  * Formats a given price number to a string with appropriate decimal places
@@ -29,6 +42,7 @@ const priceHistory: {
  * @param price The price number to format.
  * @returns The formatted price as a string.
  */
+
 export function formatPrice(price: number): string {
 	if (price > 10000) {
 		return price.toFixed(1);
@@ -47,55 +61,59 @@ export function formatPrice(price: number): string {
  * Logs the prices and 24h statistics of cryptocurrencies to the console in a tabular format.
  * @param currentPrices - The transformed price data from the current API fetch.
  */
-export function logPriceData(currentPrices: TransformedBinanceResponse) {
-	runCount++;
+export async function logPriceData(currentPrices: TransformedBinanceResponse) {
+	const runCount = getRunCount();
 	console.log(
 		chalk.gray(
 			`\n[${runCount}] Task run at ${new Date().toLocaleTimeString()}`,
 		),
 	);
 
+	// Retrieve previous and initial prices from SQLite
+	const initialPrices = getState("initialPrices");
+	const previousPrices = getState("previousPrices");
+
 	// Store initial prices on the very first run.
 	if (initialPrices === null) {
-		initialPrices = currentPrices;
+		setState("initialPrices", currentPrices);
 	}
 
 	const coinSymbols = Object.keys(config.coins);
 	const intermediateData: IntermediateDataItem[] = [];
 	const now = Date.now();
-	const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
-	const THIRTY_MINUTES_MS = 30 * 60 * 1000;
-	const HISTORY_PRUNE_MS = 35 * 60 * 1000; // Keep 35 mins of history
+	const HISTORY_PRUNE_MS = 35 * 60 * 1000;
 
-	// --- Pass 1: Collect data and update history ---
+	// --- Pass 1: Collect data and update history in SQLite ---
+	const insertHistoryQuery = db.query(
+		"INSERT INTO price_history (symbol_id, timestamp, price) VALUES (?1, ?2, ?3);",
+	);
+	const deleteOldHistoryQuery = db.query(
+		"DELETE FROM price_history WHERE timestamp < ?1;",
+	);
+
+	const addHistoryAndPrune = db.transaction(
+		(currentCoinPrices: TransformedBinanceResponse) => {
+			for (const id of coinSymbols) {
+				const priceData = currentCoinPrices[id];
+				if (priceData) {
+					insertHistoryQuery.run(id, now, priceData.current);
+				}
+			}
+			deleteOldHistoryQuery.run(now - HISTORY_PRUNE_MS);
+		},
+	);
+	addHistoryAndPrune(currentPrices);
+
 	for (const id of coinSymbols) {
 		const priceData = currentPrices[id];
 		const symbol = config.coins[id];
-
 		if (priceData && symbol) {
-			const currentPrice = priceData.current;
-			let volatility = 0;
 			const oldPrice = previousPrices?.[id]?.current;
-
-			if (oldPrice !== undefined) {
-				volatility = Math.abs(((currentPrice - oldPrice) / oldPrice) * 100);
-			}
-
-			// Update and prune price history
-			if (!priceHistory[id]) {
-				priceHistory[id] = [];
-			}
-			priceHistory[id].push({ timestamp: now, price: currentPrice });
-			priceHistory[id] = priceHistory[id].filter(
-				(entry) => now - entry.timestamp <= HISTORY_PRUNE_MS,
-			);
-
-			intermediateData.push({
-				id,
-				symbol,
-				priceData,
-				volatility,
-			});
+			const volatility =
+				oldPrice !== undefined
+					? Math.abs(((priceData.current - oldPrice) / oldPrice) * 100)
+					: 0;
+			intermediateData.push({ id, symbol, priceData, volatility });
 		} else {
 			console.log(
 				chalk.yellow(`Warning: Could not find price data for: ${id}.`),
@@ -104,10 +122,10 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 	}
 
 	// --- Pass 2: Calculate max lengths and volatility ranks ---
-	let maxHighLen = 0;
-	let maxLowLen = 0;
-	let maxAvgLen = 0;
-	let maxBaseSymbolLen = 0;
+	let maxHighLen = 0,
+		maxLowLen = 0,
+		maxAvgLen = 0,
+		maxBaseSymbolLen = 0;
 	const quoteSymbol = config.currency.toUpperCase();
 	const rankMap = new Map<string, number>();
 
@@ -147,26 +165,31 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			changeString = formatChange(change);
 		}
 
-		// 15m and 30m change
-		const history = priceHistory[data.id] || [];
-		const findPriceAgo = (ms: number) =>
-			history.findLast((entry) => now - entry.timestamp >= ms);
+		// Find historical prices from SQLite
+		const findPriceAgoQuery = db.query(
+			"SELECT price FROM price_history WHERE symbol_id = ?1 AND timestamp <= ?2 ORDER BY timestamp DESC LIMIT 1;",
+		);
+		const findPriceAgo = (ms: number) => {
+			const result = findPriceAgoQuery.get(data.id, now - ms) as {
+				price: number;
+			} | null;
+			return result?.price;
+		};
 
-		let change15m = 0;
-		let change15mString = chalk.gray("N/A");
-		const price15mAgo = findPriceAgo(FIFTEEN_MINUTES_MS);
+		const price15mAgo = findPriceAgo(15 * 60 * 1000);
+		const price30mAgo = findPriceAgo(30 * 60 * 1000);
+
+		let change15m = 0,
+			change15mString = chalk.gray("N/A");
 		if (price15mAgo) {
-			change15m =
-				((currentPrice - price15mAgo.price) / price15mAgo.price) * 100;
+			change15m = ((currentPrice - price15mAgo) / price15mAgo) * 100;
 			change15mString = formatChange(change15m);
 		}
 
-		let change30mString = chalk.gray("N/A");
-		let change30m = 0;
-		const price30mAgo = findPriceAgo(THIRTY_MINUTES_MS);
+		let change30m = 0,
+			change30mString = chalk.gray("N/A");
 		if (price30mAgo) {
-			change30m =
-				((currentPrice - price30mAgo.price) / price30mAgo.price) * 100;
+			change30m = ((currentPrice - price30mAgo) / price30mAgo) * 100;
 			change30mString = formatChange(change30m);
 		}
 
@@ -179,7 +202,7 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 			sessionChangeString = formatChange(sessionChange);
 		}
 
-		// --- Signal Generation (Illustrative) ---
+		// --- Signal Generation ---
 		let signalString = chalk.gray("Neutral");
 		if (change15m > 1 && change30m > 1) {
 			signalString = chalk.green.bold("Buy");
@@ -212,8 +235,8 @@ export function logPriceData(currentPrices: TransformedBinanceResponse) {
 		console.table(tableObject);
 	}
 
-	// Update previousPrices for the next comparison.
-	previousPrices = currentPrices;
+	// Update previousPrices for the next comparison in SQLite
+	setState("previousPrices", currentPrices);
 }
 
 /**
