@@ -4,7 +4,7 @@
 
 import chalk from "chalk";
 import config from "@/config";
-import db from "@/database"; // Import the database instance
+import db from "@/db"; // Import the database instance
 import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
 import pkg from "../../package.json";
 
