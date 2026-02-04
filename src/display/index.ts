@@ -144,87 +144,138 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 			});
 	}
 
-	// --- Pass 3: Build final table data with all formatting ---
-	const tableData = intermediateData.map((data) => {
-		const currentPrice = data.priceData.current;
-		let priceColor = chalk.white;
+	// --- Pass 3: Pre-calculate all change strings and signals for padding ---
+	const findPriceAgoQuery = db.query(
+		"SELECT price FROM price_history WHERE symbol_id = ?1 AND timestamp <= ?2 ORDER BY timestamp DESC LIMIT 1;",
+	);
 
-		const formatChange = (change: number) => {
-			if (change > 0) return chalk.green(`▲ +${change.toFixed(2)}%`);
-			if (change < 0) return chalk.red(`▼ ${change.toFixed(2)}%`);
-			return chalk.white("   0.00%");
-		};
+	const preFormattedChanges = await Promise.all(
+		intermediateData.map(async (data) => {
+			const currentPrice = data.priceData.current;
+			let priceColor = chalk.white;
 
-		// Change from previous fetch
-		let changeString = chalk.gray("N/A");
-		const oldPrice = previousPrices?.[data.id]?.current;
-		if (oldPrice !== undefined) {
-			const change = ((currentPrice - oldPrice) / oldPrice) * 100;
-			if (change > 0) priceColor = chalk.green;
-			if (change < 0) priceColor = chalk.red;
-			changeString = formatChange(change);
-		}
+			const formatChange = (change: number) => {
+				if (change > 0) return chalk.green(`▲ +${change.toFixed(2)}%`);
+				if (change < 0) return chalk.red(`▼ ${change.toFixed(2)}%`);
+				return chalk.white("   0.00%");
+			};
 
-		// Find historical prices from SQLite
-		const findPriceAgoQuery = db.query(
-			"SELECT price FROM price_history WHERE symbol_id = ?1 AND timestamp <= ?2 ORDER BY timestamp DESC LIMIT 1;",
+			// Change from previous fetch
+			let changeString = chalk.gray("N/A");
+			const oldPrice = previousPrices?.[data.id]?.current;
+			if (oldPrice !== undefined) {
+				const change = ((currentPrice - oldPrice) / oldPrice) * 100;
+				if (change > 0) priceColor = chalk.green;
+				if (change < 0) priceColor = chalk.red;
+				changeString = formatChange(change);
+			}
+
+			// Find historical prices from SQLite
+			const findPriceAgo = (ms: number) => {
+				const result = findPriceAgoQuery.get(data.id, now - ms) as {
+					price: number;
+				} | null;
+				return result?.price;
+			};
+
+			const price15mAgo = findPriceAgo(15 * 60 * 1000);
+			const price30mAgo = findPriceAgo(30 * 60 * 1000);
+
+			let change15m = 0,
+				change15mString = chalk.gray("N/A");
+			if (price15mAgo) {
+				change15m = ((currentPrice - price15mAgo) / price15mAgo) * 100;
+				change15mString = formatChange(change15m);
+			}
+
+			let change30m = 0,
+				change30mString = chalk.gray("N/A");
+			if (price30mAgo) {
+				change30m = ((currentPrice - price30mAgo) / price30mAgo) * 100;
+				change30mString = formatChange(change30m);
+			}
+
+			// Session change
+			let sessionChangeString = chalk.gray("N/A");
+			const initialPrice = initialPrices?.[data.id]?.current;
+			if (initialPrice !== undefined && initialPrices !== currentPrices) {
+				const sessionChange =
+					((currentPrice - initialPrice) / initialPrice) * 100;
+				sessionChangeString = formatChange(sessionChange);
+			}
+
+			// --- Signal Generation ---
+			let signalString = chalk.gray("Neutral");
+			if (change15m > 1 && change30m > 1) {
+				signalString = chalk.green.bold("Buy");
+			} else if (change15m < -1 && change30m < -1) {
+				signalString = chalk.red.bold("Sell");
+			}
+
+			return {
+				id: data.id,
+				changeString,
+				change15mString,
+				change30mString,
+				sessionChangeString,
+				priceColor,
+				signalString,
+			};
+		}),
+	);
+
+	// --- Pass 4: Calculate max lengths for change strings and build final table data ---
+	let maxChange1mLen = 0;
+	let max15mChangeLen = 0;
+	let max30mChangeLen = 0;
+	let maxSessionChangeLen = 0;
+
+	for (const changeData of preFormattedChanges) {
+		maxChange1mLen = Math.max(maxChange1mLen, changeData.changeString.length);
+		max15mChangeLen = Math.max(
+			max15mChangeLen,
+			changeData.change15mString.length,
 		);
-		const findPriceAgo = (ms: number) => {
-			const result = findPriceAgoQuery.get(data.id, now - ms) as {
-				price: number;
-			} | null;
-			return result?.price;
-		};
+		max30mChangeLen = Math.max(
+			max30mChangeLen,
+			changeData.change30mString.length,
+		);
+		maxSessionChangeLen = Math.max(
+			maxSessionChangeLen,
+			changeData.sessionChangeString.length,
+		);
+	}
 
-		const price15mAgo = findPriceAgo(15 * 60 * 1000);
-		const price30mAgo = findPriceAgo(30 * 60 * 1000);
+	const tableData = intermediateData
+		.map((data) => {
+			const preFormatted = preFormattedChanges.find((pc) => pc.id === data.id);
+			if (!preFormatted) {
+				return null; // Should not happen
+			}
 
-		let change15m = 0,
-			change15mString = chalk.gray("N/A");
-		if (price15mAgo) {
-			change15m = ((currentPrice - price15mAgo) / price15mAgo) * 100;
-			change15mString = formatChange(change15m);
-		}
-
-		let change30m = 0,
-			change30mString = chalk.gray("N/A");
-		if (price30mAgo) {
-			change30m = ((currentPrice - price30mAgo) / price30mAgo) * 100;
-			change30mString = formatChange(change30m);
-		}
-
-		// Session change
-		let sessionChangeString = chalk.gray("N/A");
-		const initialPrice = initialPrices?.[data.id]?.current;
-		if (initialPrice !== undefined && initialPrices !== currentPrices) {
-			const sessionChange =
-				((currentPrice - initialPrice) / initialPrice) * 100;
-			sessionChangeString = formatChange(sessionChange);
-		}
-
-		// --- Signal Generation ---
-		let signalString = chalk.gray("Neutral");
-		if (change15m > 1 && change30m > 1) {
-			signalString = chalk.green.bold("Buy");
-		} else if (change15m < -1 && change30m < -1) {
-			signalString = chalk.red.bold("Sell");
-		}
-
-		return {
-			Symbol: `${chalk.blue(
-				data.symbol.padEnd(maxBaseSymbolLen),
-			)} ${chalk.yellow(quoteSymbol)}`,
-			Price: priceColor(formatPrice(currentPrice)),
-			"24h High/Low/AVG": `${chalk.green(
-				formatPrice(data.priceData.high).padEnd(maxHighLen),
-			)} ${chalk.red(
-				formatPrice(data.priceData.low).padEnd(maxLowLen),
-			)} ${chalk.gray(formatPrice(data.priceData.avg).padEnd(maxAvgLen))}`,
-			[`% Change ${config.fetch_interval}/15m/30m/Session`]: `${changeString} ${change15mString} ${change30mString} ${sessionChangeString}`,
-			"V#": previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
-			Signal: signalString,
-		};
-	});
+			return {
+				Symbol: `${chalk.blue(
+					data.symbol.padEnd(maxBaseSymbolLen),
+				)} ${chalk.yellow(quoteSymbol)}`,
+				Price: preFormatted.priceColor(formatPrice(data.priceData.current)),
+				"24h High/Low/AVG": `${chalk.green(
+					formatPrice(data.priceData.high).padEnd(maxHighLen),
+				)} ${chalk.red(
+					formatPrice(data.priceData.low).padEnd(maxLowLen),
+				)} ${chalk.gray(formatPrice(data.priceData.avg).padEnd(maxAvgLen))}`,
+				[`% Change ${config.fetch_interval}/15m/30m/Session`]: `${preFormatted.changeString.padEnd(
+					maxChange1mLen,
+				)} ${preFormatted.change15mString.padEnd(
+					max15mChangeLen,
+				)} ${preFormatted.change30mString.padEnd(
+					max30mChangeLen,
+				)} ${preFormatted.sessionChangeString.padEnd(maxSessionChangeLen)}`,
+				"V#":
+					previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
+				Signal: preFormatted.signalString,
+			};
+		})
+		.filter(Boolean); // Filter out any nulls if preFormatted was not found
 
 	// Display the collected price data in a table.
 	if (tableData.length > 0) {
