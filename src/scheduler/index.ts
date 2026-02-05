@@ -4,7 +4,10 @@
 
 import cron from "node-cron";
 import config from "@/config";
-import { logInvalidIntervalError, logSchedulerStart } from "@/display";
+import {
+	logInvalidIntervalError,
+	logSchedulerStart,
+} from "@/display/logMessages";
 
 /**
  * Sets up and starts a cron job based on the interval specified in the configuration.

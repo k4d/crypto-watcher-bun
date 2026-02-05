@@ -5,7 +5,8 @@
 
 import { fetchTickerData } from "@/api";
 import config from "@/config";
-import { logAppStart, logPriceData } from "@/display";
+import { logPriceData } from "@/display";
+import { logAppStart } from "@/display/logMessages";
 import { startScheduler } from "@/scheduler";
 
 /**

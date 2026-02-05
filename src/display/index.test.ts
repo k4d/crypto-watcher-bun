@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { formatPrice } from "./index"; // Use relative import for test file
+import { formatPrice } from "./formatters"; // Use relative import for test file
 
 test("formatPrice correctly formats numbers based on magnitude", () => {
 	// > 10000 -> 1 decimal

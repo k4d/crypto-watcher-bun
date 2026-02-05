@@ -6,56 +6,8 @@ import chalk from "chalk";
 import config from "@/config";
 import db from "@/db"; // Import the database instance
 import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
-import pkg from "../../package.json";
-
-// --- Helper Functions for DB State Management ---
-
-function getState(key: string): TransformedBinanceResponse | null {
-	const query = db.query("SELECT value FROM key_value_store WHERE key = ?1;");
-	const result = query.get(key) as { value: string } | null;
-	return result ? JSON.parse(result.value) : null;
-}
-
-function setState(key: string, value: TransformedBinanceResponse) {
-	const query = db.query(
-		"INSERT OR REPLACE INTO key_value_store (key, value) VALUES (?1, ?2);",
-	);
-	query.run(key, JSON.stringify(value));
-}
-
-function getRunCount(): number {
-	const query = db.query(
-		"INSERT INTO key_value_store (key, value) VALUES ('runCount', '0') ON CONFLICT(key) DO UPDATE SET value = CAST(value AS INTEGER) + 1 RETURNING value;",
-	);
-	const result = query.get() as { value: string };
-	return parseInt(result.value, 10);
-}
-
-/**
- * Formats a given price number to a string with appropriate decimal places
- * based on its magnitude for better readability.
- * - For prices > 10000, uses 1 decimal place.
- * - For prices > 100, uses 2 decimal places.
- * - For prices > 1, uses 3 decimal places.
- * - For prices < 1 but >= 0.01, uses 4 decimal places.
- * - For prices < 0.01, uses 5 decimal places.
- * @param price The price number to format.
- * @returns The formatted price as a string.
- */
-
-export function formatPrice(price: number): string {
-	if (price > 10000) {
-		return price.toFixed(1);
-	} else if (price > 100) {
-		return price.toFixed(2);
-	} else if (price > 1) {
-		return price.toFixed(3);
-	} else if (price < 0.01) {
-		return price.toFixed(5);
-	} else {
-		return price.toFixed(4);
-	}
-}
+import { formatPrice } from "./formatters";
+import { getRunCount, getState, setState } from "./stateHelpers";
 
 /**
  * Logs the prices and 24h statistics of cryptocurrencies to the console in a tabular format.
@@ -288,33 +240,4 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 
 	// Update previousPrices for the next comparison in SQLite
 	setState("previousPrices", currentPrices);
-}
-
-/**
- * Logs the initial application startup message, including the version number.
- */
-export function logAppStart() {
-	console.log(
-		chalk.green(`Crypto Watcher v${pkg.version} started. Initial fetch...`),
-	);
-}
-
-/**
- * Logs the message indicating that the scheduler has started.
- * @param interval - The fetch interval string (e.g., "5m").
- */
-export function logSchedulerStart(interval: string) {
-	console.log(chalk.green(`Scheduler started: fetching every ${interval}`));
-}
-
-/**
- * Logs an error message for an invalid fetch interval format and exits the process.
- * @param interval - The invalid interval string from the config.
- */
-export function logInvalidIntervalError(interval: string) {
-	console.log(
-		chalk.red(
-			`Неверный формат интервала: ${interval}. Используйте "5m", "1h", или "30s".`,
-		),
-	);
 }

@@ -1,7 +1,10 @@
 import { beforeEach, expect, test, vi } from "bun:test";
 import cron from "node-cron";
 import config from "@/config";
-import { logInvalidIntervalError, logSchedulerStart } from "@/display";
+import {
+	logInvalidIntervalError,
+	logSchedulerStart,
+} from "@/display/logMessages";
 import { startScheduler } from "./index";
 
 // Mock the modules we depend on
@@ -18,7 +21,7 @@ vi.mock("@/config", () => ({
 	},
 }));
 
-vi.mock("@/display", () => ({
+vi.mock("@/display/logMessages", () => ({
 	logSchedulerStart: vi.fn(),
 	logInvalidIntervalError: vi.fn(),
 	// Add other functions from display if they get used, but for now this is enough
