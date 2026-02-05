@@ -51,6 +51,7 @@
 
 ```
 /crypto-watcher-bun
+├── data/                        # Папка для хранения файлов базы данных SQLite (dev_history.sqlite, prod_history.sqlite)
 ├── src/
 │   ├── api/                     # Модули для взаимодействия с внешними API (например, Binance)
 │   │   ├── binance.ts           # Клиент Binance API

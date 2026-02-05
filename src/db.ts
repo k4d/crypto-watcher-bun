@@ -5,7 +5,7 @@ import { Database } from "bun:sqlite";
 
 // Determine the database file based on the environment
 const isProduction = Bun.env.NODE_ENV === "production";
-const dbFile = isProduction ? "prod_history.sqlite" : "dev_history.sqlite";
+const dbFile = isProduction ? "data/prod_history.sqlite" : "data/dev_history.sqlite";
 
 // Initialize the database. It will be created if it doesn't exist.
 const db = new Database(dbFile);
