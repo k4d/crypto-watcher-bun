@@ -15,7 +15,7 @@
     "lint": "bunx @biomejs/biome check --write src"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.11",
+    "@biomejs/biome": "^2.3.14",
     "@types/bun": "latest",
     "husky": "^9.1.7"
   },
@@ -26,6 +26,6 @@
     "chalk": "^5.6.2",
     "node-cron": "^4.2.1",
     "yaml": "^2.8.2",
-    "zod": "^4.3.5"
+    "zod": "^4.3.6"
   }
 }
