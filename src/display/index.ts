@@ -122,6 +122,16 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 				changeString = formatChange(change);
 			}
 
+			// IMPORTANT: If current price is at 24h high, override the color
+			// This check must come *after* other coloring to take precedence.
+			if (currentPrice >= data.priceData.high) {
+				priceColor = chalk.bgHex("#006400").white;
+			}
+			// IMPORTANT: If current price is at 24h low, override the color (takes precedence over change, but not high)
+			if (currentPrice <= data.priceData.low) {
+				priceColor = chalk.bgHex("#8B0000").white;
+			}
+
 			// Find historical prices from SQLite
 			const findPriceAgo = (ms: number) => {
 				const result = findPriceAgoQuery.get(data.id, now - ms) as {
