@@ -63,9 +63,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 			const oldPrice = previousPrices?.[id]?.current;
 			const volatility =
 				oldPrice !== undefined
-					? Math.abs(
-							((priceData.current - oldPrice) / oldPrice) * 100,
-						)
+					? Math.abs(((priceData.current - oldPrice) / oldPrice) * 100)
 					: 0;
 			intermediateData.push({ id, symbol, priceData, volatility });
 		} else {
@@ -84,10 +82,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 	const rankMap = new Map<string, number>();
 
 	for (const data of intermediateData) {
-		maxHighLen = Math.max(
-			maxHighLen,
-			formatPrice(data.priceData.high).length,
-		);
+		maxHighLen = Math.max(maxHighLen, formatPrice(data.priceData.high).length);
 		maxLowLen = Math.max(maxLowLen, formatPrice(data.priceData.low).length);
 		maxAvgLen = Math.max(maxAvgLen, formatPrice(data.priceData.avg).length);
 		maxBaseSymbolLen = Math.max(maxBaseSymbolLen, data.symbol.length);
@@ -198,10 +193,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 	let maxSessionChangeLen = 0;
 
 	for (const changeData of preFormattedChanges) {
-		maxChange1mLen = Math.max(
-			maxChange1mLen,
-			changeData.changeString.length,
-		);
+		maxChange1mLen = Math.max(maxChange1mLen, changeData.changeString.length);
 		max15mChangeLen = Math.max(
 			max15mChangeLen,
 			changeData.change15mString.length,
@@ -218,9 +210,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 
 	const tableData = intermediateData
 		.map((data) => {
-			const preFormatted = preFormattedChanges.find(
-				(pc) => pc.id === data.id,
-			);
+			const preFormatted = preFormattedChanges.find((pc) => pc.id === data.id);
 			if (!preFormatted) {
 				return null; // Should not happen
 			}
@@ -229,9 +219,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 				Symbol: `${chalk.blue(
 					data.symbol.padEnd(maxBaseSymbolLen),
 				)} ${chalk.yellow(quoteSymbol)}`,
-				Price: preFormatted.priceColor(
-					formatPrice(data.priceData.current),
-				),
+				Price: preFormatted.priceColor(formatPrice(data.priceData.current)),
 				"24h High/Low/AVG": `${chalk.green(
 					formatPrice(data.priceData.high).padEnd(maxHighLen),
 				)} ${chalk.red(
@@ -245,9 +233,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 					max30mChangeLen,
 				)} ${preFormatted.sessionChangeString.padEnd(maxSessionChangeLen)}`,
 				"V#":
-					previousPrices === null
-						? chalk.gray("N/A")
-						: rankMap.get(data.id),
+					previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
 				Signal: preFormatted.signalString,
 			};
 		})

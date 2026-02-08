@@ -23,6 +23,6 @@ async function runTask() {
 }
 
 // --- Application Startup ---
-logAppStart();
+await logAppStart();
 await runTask(); // Execute the task immediately on startup.
 startScheduler(runTask); // Set up and start the recurring task scheduler.

@@ -2,12 +2,21 @@
  * @file This module contains simple logging functions for application events.
  */
 import chalk from "chalk";
+import figlet from "figlet";
 import pkg from "../../package.json";
 
 /**
  * Logs the initial application startup message, including the version number.
  */
-export function logAppStart() {
+export async function logAppStart() {
+	const asciiArt = await figlet.text("Z Crypto Watcher", {
+		font: "Slant", // Or choose another font
+		horizontalLayout: "default",
+		verticalLayout: "default",
+		width: 80,
+		whitespaceBreak: true,
+	});
+	console.log(chalk.blue(asciiArt));
 	console.log(
 		chalk.green(`Crypto Watcher v${pkg.version} started. Initial fetch...`),
 	);
