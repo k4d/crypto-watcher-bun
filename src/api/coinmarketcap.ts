@@ -3,7 +3,7 @@
  */
 
 import chalk from "chalk";
-import { CmcGlobalMetricsSchema } from "@/types";
+import { CmcGlobalMetricsSchema, FearAndGreedIndexSchema } from "@/types";
 
 // --- API Client ---
 
@@ -69,6 +69,64 @@ export async function fetchGlobalMetrics(
 	} catch (error) {
 		console.error(
 			chalk.red.bold("\nError fetching CoinMarketCap global metrics!"),
+			error,
+		);
+		throw error;
+	}
+}
+
+/**
+ * Fetches the latest CoinMarketCap Fear and Greed Index value and classification.
+ * @param apiKey The CoinMarketCap API key.
+ * @returns An object containing the Fear and Greed Index value and its classification.
+ * @throws If the API key is missing, the request fails, or the response is invalid.
+ */
+export async function fetchFearAndGreedIndex(apiKey: string) {
+	if (!apiKey) {
+		throw new Error(
+			"CoinMarketCap API key is missing for Fear and Greed Index. Please set CMC_API_KEY environment variable.",
+		);
+	}
+
+	const url = `https://pro-api.coinmarketcap.com/v3/fear-and-greed/latest`;
+
+	try {
+		const response = await fetch(url, {
+			headers: {
+				"X-CMC_PRO_API_KEY": apiKey,
+			},
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json();
+			console.error(
+				chalk.red(
+					`CoinMarketCap API Error (Fear and Greed Index - ${response.status}): ${JSON.stringify(
+						errorData,
+					)}`,
+				),
+			);
+			throw new Error(
+				`CoinMarketCap API for Fear and Greed Index returned status ${response.status}`,
+			);
+		}
+
+		const rawData = await response.json();
+		const validatedData = FearAndGreedIndexSchema.parse(rawData);
+
+		if (!validatedData.data) {
+			throw new Error(
+				`CoinMarketCap API response missing data for Fear and Greed Index`,
+			);
+		}
+
+		return {
+			fearAndGreedIndex: validatedData.data.value,
+			fearAndGreedClassification: validatedData.data.value_classification,
+		};
+	} catch (error) {
+		console.error(
+			chalk.red.bold("\nError fetching CoinMarketCap Fear and Greed Index!"),
 			error,
 		);
 		throw error;

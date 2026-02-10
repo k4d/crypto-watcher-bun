@@ -18,6 +18,7 @@ function formatCurrency(num: number): string {
 
 // New helper function for color-coding the change percentage
 function formatChangePercentage(change: number): string {
+	if (Number.isNaN(change)) return chalk.gray("N/A");
 	if (change > 0) return chalk.green(`▲ +${change.toFixed(2)}%`);
 	if (change < 0) return chalk.red(`▼ ${change.toFixed(2)}%`);
 	return chalk.white(`  ${change.toFixed(2)}%`);
@@ -75,6 +76,12 @@ export function logGlobalMetricsTable(
 			ValueRaw: metrics.btcDominance.toFixed(2),
 			Unit: "%",
 			Change: metrics.btcDominanceChange24h,
+		},
+		{
+			Metric: "Fear & Greed Index",
+			ValueRaw: metrics.fearAndGreedIndex.toFixed(0), // F&G is usually an integer
+			Unit: metrics.fearAndGreedClassification, // Classification as the unit
+			Change: NaN, // No 24h change available for Fear and Greed Index on free tier
 		},
 	];
 

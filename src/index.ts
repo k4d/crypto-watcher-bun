@@ -4,7 +4,10 @@
  */
 
 import { fetchTickerData } from "@/api";
-import { fetchGlobalMetrics } from "@/api/coinmarketcap";
+import {
+	fetchFearAndGreedIndex,
+	fetchGlobalMetrics,
+} from "@/api/coinmarketcap";
 import config from "@/config";
 import { logPriceData } from "@/display";
 import { logGlobalMetricsTable } from "@/display/globalMetricsDisplay";
@@ -31,7 +34,17 @@ await logAppStart();
 let globalMetrics: GlobalMetrics | undefined;
 if (config.cmc_api_key) {
 	try {
-		globalMetrics = await fetchGlobalMetrics(config.cmc_api_key, "USD");
+		// Fetch core global metrics
+		const coreMetrics = await fetchGlobalMetrics(config.cmc_api_key, "USD");
+
+		// Fetch Fear and Greed Index
+		const fearAndGreed = await fetchFearAndGreedIndex(config.cmc_api_key);
+
+		globalMetrics = {
+			...coreMetrics,
+			...fearAndGreed,
+		};
+
 		logGlobalMetricsTable(globalMetrics, "USD"); // Display once at startup
 	} catch (error) {
 		console.error("Failed to fetch global metrics:", error);

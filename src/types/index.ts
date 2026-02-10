@@ -59,6 +59,18 @@ export const CmcGlobalMetricsSchema = z.object({
 	}),
 });
 
+// --- Zod Schemas for CoinMarketCap API Indexes and Sentiment ---
+
+export const FearAndGreedDataSchema = z.object({
+	value: z.number(),
+	update_time: z.string(),
+	value_classification: z.string(),
+});
+
+export const FearAndGreedIndexSchema = z.object({
+	data: FearAndGreedDataSchema, // Direct data object
+});
+
 // --- Inferred TypeScript Types ---
 
 /**
@@ -113,11 +125,13 @@ export interface TransformedBinanceResponse {
 /**
  * Type for global cryptocurrency metrics, as returned by CoinMarketCap API.
  */
-export type GlobalMetrics = {
+export interface GlobalMetrics {
 	totalMarketCap: number;
 	totalVolume24h: number;
 	btcDominance: number;
 	totalMarketCapChange24h: number;
 	totalVolume24hChange24h: number;
 	btcDominanceChange24h: number;
-};
+	fearAndGreedIndex: number;
+	fearAndGreedClassification: string;
+}
