@@ -47,12 +47,14 @@ export const ConfigSchema = z.object({
 export const CmcCurrencyMetricsSchema = z.object({
 	total_market_cap: z.number(),
 	total_volume_24h: z.number(),
-	// Add other fields from quote if needed in future, e.g., price, volume_24h
+	total_market_cap_yesterday_percentage_change: z.number().optional(),
+	total_volume_24h_yesterday_percentage_change: z.number().optional(),
 });
 
 export const CmcGlobalMetricsSchema = z.object({
 	data: z.object({
 		btc_dominance: z.number(),
+		btc_dominance_24h_percentage_change: z.number().optional(),
 		quote: z.record(z.string(), CmcCurrencyMetricsSchema), // e.g., { "USDT": { ... } }
 	}),
 });
@@ -115,4 +117,7 @@ export type GlobalMetrics = {
 	totalMarketCap: number;
 	totalVolume24h: number;
 	btcDominance: number;
+	totalMarketCapChange24h: number;
+	totalVolume24hChange24h: number;
+	btcDominanceChange24h: number;
 };

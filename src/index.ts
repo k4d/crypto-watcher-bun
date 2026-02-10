@@ -31,11 +31,8 @@ await logAppStart();
 let globalMetrics: GlobalMetrics | undefined;
 if (config.cmc_api_key) {
 	try {
-		globalMetrics = await fetchGlobalMetrics(
-			config.cmc_api_key,
-			config.currency,
-		);
-		logGlobalMetricsTable(globalMetrics, config.currency); // Display once at startup
+		globalMetrics = await fetchGlobalMetrics(config.cmc_api_key, "USD");
+		logGlobalMetricsTable(globalMetrics, "USD"); // Display once at startup
 	} catch (error) {
 		console.error("Failed to fetch global metrics:", error);
 		// Continue without global metrics

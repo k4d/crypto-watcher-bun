@@ -59,6 +59,12 @@ export async function fetchGlobalMetrics(
 			totalMarketCap: quote.total_market_cap, // Corrected path
 			totalVolume24h: quote.total_volume_24h, // Corrected path
 			btcDominance: validatedData.data.btc_dominance,
+			totalMarketCapChange24h:
+				quote.total_market_cap_yesterday_percentage_change || 0,
+			totalVolume24hChange24h:
+				quote.total_volume_24h_yesterday_percentage_change || 0,
+			btcDominanceChange24h:
+				validatedData.data.btc_dominance_24h_percentage_change || 0,
 		};
 	} catch (error) {
 		console.error(
