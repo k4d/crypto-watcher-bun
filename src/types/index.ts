@@ -39,6 +39,22 @@ export const ConfigSchema = z.object({
 			"Invalid fetch_interval format. Use 's', 'm', or 'h' (e.g., '30s', '5m', '1h').",
 		),
 	coins: z.record(z.string(), z.string().min(1)),
+	cmc_api_key: z.string().optional(), // Added for CoinMarketCap integration
+});
+
+// --- Zod Schemas for CoinMarketCap API ---
+
+export const CmcCurrencyMetricsSchema = z.object({
+	total_market_cap: z.number(),
+	total_volume_24h: z.number(),
+	// Add other fields from quote if needed in future, e.g., price, volume_24h
+});
+
+export const CmcGlobalMetricsSchema = z.object({
+	data: z.object({
+		btc_dominance: z.number(),
+		quote: z.record(z.string(), CmcCurrencyMetricsSchema), // e.g., { "USDT": { ... } }
+	}),
 });
 
 // --- Inferred TypeScript Types ---
@@ -91,3 +107,12 @@ export interface IntermediateDataItem {
 export interface TransformedBinanceResponse {
 	[symbol: string]: PriceData;
 }
+
+/**
+ * Type for global cryptocurrency metrics, as returned by CoinMarketCap API.
+ */
+export type GlobalMetrics = {
+	totalMarketCap: number;
+	totalVolume24h: number;
+	btcDominance: number;
+};

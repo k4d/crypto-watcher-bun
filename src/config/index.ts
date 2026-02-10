@@ -18,7 +18,16 @@ async function loadConfig(): Promise<Config> {
 		const file = Bun.file("src/config.yml");
 		const rawConfigText = await file.text(); // Use Bun's native file I/O
 		const rawConfig = YAML.parse(rawConfigText);
-		const validatedConfig = ConfigSchema.parse(rawConfig);
+
+		// Get CMC API key from environment, if available
+		const cmcApiKey = Bun.env.CMC_API_KEY;
+
+		const configWithCmcKey = {
+			...rawConfig,
+			...(cmcApiKey && { cmc_api_key: cmcApiKey }), // Conditionally add cmc_api_key
+		};
+
+		const validatedConfig = ConfigSchema.parse(configWithCmcKey);
 		return validatedConfig;
 	} catch (error) {
 		console.error(
