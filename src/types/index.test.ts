@@ -14,6 +14,19 @@ test("ConfigSchema validates a correct configuration", () => {
 	expect(() => ConfigSchema.parse(validConfig)).not.toThrow();
 });
 
+test("ConfigSchema validates a correct configuration with cmc_api_key", () => {
+	const validConfig = {
+		currency: "USDT",
+		fetch_interval: "5m",
+		coins: {
+			BTCUSDT: "BTC",
+			ETHUSDT: "ETH",
+		},
+		cmc_api_key: "test_api_key",
+	};
+	expect(() => ConfigSchema.parse(validConfig)).not.toThrow();
+});
+
 test("ConfigSchema throws error for missing currency", () => {
 	const invalidConfig = {
 		fetch_interval: "5m",
@@ -71,6 +84,16 @@ test("ConfigSchema allows numbers in fetch_interval with 'h'", () => {
 		currency: "USDT",
 		fetch_interval: "1h",
 		coins: { BTCUSDT: "BTC" },
+	};
+	expect(() => ConfigSchema.parse(validConfig)).not.toThrow();
+});
+
+test("ConfigSchema allows optional cmc_api_key", () => {
+	const validConfig = {
+		currency: "USDT",
+		fetch_interval: "5m",
+		coins: { BTCUSDT: "BTC" },
+		cmc_api_key: "some_valid_api_key",
 	};
 	expect(() => ConfigSchema.parse(validConfig)).not.toThrow();
 });
