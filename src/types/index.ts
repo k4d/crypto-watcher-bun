@@ -54,7 +54,9 @@ export const CmcCurrencyMetricsSchema = z.object({
 export const CmcGlobalMetricsSchema = z.object({
 	data: z.object({
 		btc_dominance: z.number(),
+		eth_dominance: z.number().optional(), // ETH Dominance
 		btc_dominance_24h_percentage_change: z.number().optional(),
+		eth_dominance_24h_percentage_change: z.number().optional(), // ETH Dominance 24h change
 		quote: z.record(z.string(), CmcCurrencyMetricsSchema), // e.g., { "USDT": { ... } }
 	}),
 });
@@ -129,9 +131,11 @@ export interface GlobalMetrics {
 	totalMarketCap: number;
 	totalVolume24h: number;
 	btcDominance: number;
+	ethDominance?: number; // ETH Dominance (may not be available on all plans)
 	totalMarketCapChange24h: number;
 	totalVolume24hChange24h: number;
 	btcDominanceChange24h: number;
+	ethDominanceChange24h?: number; // ETH Dominance 24h change
 	fearAndGreedIndex: number;
 	fearAndGreedClassification: string;
 }

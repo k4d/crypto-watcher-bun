@@ -78,6 +78,24 @@ export function logGlobalMetricsTable(
 			Change: metrics.btcDominanceChange24h,
 		},
 		{
+			Metric: "ETH Dominance",
+			ValueRaw: metrics.ethDominance ? metrics.ethDominance.toFixed(2) : "N/A",
+			Unit: "%",
+			Change: metrics.ethDominance ? metrics.ethDominanceChange24h || 0 : NaN, // Use 0 if change is not available, or NaN if ethDominance itself is not available
+		},
+		{
+			Metric: "Others",
+			ValueRaw: metrics.ethDominance
+				? (100 - metrics.btcDominance - metrics.ethDominance).toFixed(2)
+				: "N/A",
+			Unit: "%",
+			Change: metrics.ethDominance
+				? 0 -
+					metrics.btcDominanceChange24h -
+					(metrics.ethDominanceChange24h || 0)
+				: NaN, // Calculate others change as inverse of BTC+ETH change
+		},
+		{
 			Metric: "Fear & Greed Index",
 			ValueRaw: metrics.fearAndGreedIndex.toFixed(0), // F&G is usually an integer
 			Unit: metrics.fearAndGreedClassification, // Classification as the unit
@@ -85,21 +103,26 @@ export function logGlobalMetricsTable(
 		},
 	];
 
-	// Calculate max length for the ValueRaw part
-	const maxValueRawLen = Math.max(
-		...dataForTable.map((item) => item.ValueRaw.length),
-		"Value".length,
-	);
+	// Calculate max length for the ValueRaw part (only for valid strings)
+	const validValueLengths = dataForTable
+		.map((item) =>
+			typeof item.ValueRaw === "string" ? item.ValueRaw.length : 0,
+		)
+		.filter((length) => length > 0);
+	const maxValueRawLen = Math.max(...validValueLengths, "Value".length);
 
 	const finalTableData = dataForTable.map((item) => {
 		return {
 			Metric: chalk.blue(item.Metric),
-			Value: formatCombinedValueUnit(
-				item.ValueRaw,
-				item.Unit,
-				item.Change,
-				maxValueRawLen,
-			),
+			Value:
+				typeof item.ValueRaw === "string"
+					? formatCombinedValueUnit(
+							item.ValueRaw,
+							item.Unit,
+							item.Change,
+							maxValueRawLen,
+						)
+					: chalk.white(item.ValueRaw),
 			"24h Change": formatChangePercentage(item.Change),
 		};
 	});
