@@ -7,6 +7,7 @@ import config from "@/config";
 import db from "@/db"; // Import the database instance
 import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
 import { formatPrice } from "./formatters";
+import { generateSignal } from "./signal";
 import { getRunCount, getState, setState } from "./stateHelpers";
 
 /**
@@ -166,13 +167,14 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 				sessionChangeString = formatChange(sessionChange);
 			}
 
-			// --- Signal Generation ---
-			let signalString = chalk.gray("Neutral");
-			if (change15m > 1 && change30m > 1) {
-				signalString = chalk.green.bold("Buy");
-			} else if (change15m < -1 && change30m < -1) {
-				signalString = chalk.red.bold("Sell");
-			}
+			// --- Signal Generation using advanced algorithm ---
+			const signalString = generateSignal(
+				change15m,
+				change30m,
+				currentPrice,
+				data.priceData.high,
+				data.priceData.low,
+			);
 
 			return {
 				id: data.id,
