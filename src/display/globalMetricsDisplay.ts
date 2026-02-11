@@ -16,6 +16,28 @@ function formatCurrency(num: number): string {
 	return num.toFixed(2);
 }
 
+/**
+ * Gets the appropriate color for Fear and Greed Index based on its classification.
+ * @param classification The classification string (e.g., "Extreme Fear", "Fear", etc.)
+ * @returns A chalk color function
+ */
+function getColorForFearAndGreedClassification(classification: string) {
+	switch (classification.toLowerCase()) {
+		case "extreme fear":
+			return chalk.red; // Dark red for extreme fear
+		case "fear":
+			return chalk.hex("#FFA500"); // Orange for fear
+		case "neutral":
+			return chalk.yellow; // Yellow for neutral
+		case "greed":
+			return chalk.green; // Light green for greed
+		case "extreme greed":
+			return chalk.green.bold; // Bright green for extreme greed
+		default:
+			return chalk.white; // Default color
+	}
+}
+
 // New helper function for color-coding the change percentage
 function formatChangePercentage(change: number): string {
 	if (Number.isNaN(change)) return chalk.gray("N/A");
@@ -100,6 +122,9 @@ export function logGlobalMetricsTable(
 			ValueRaw: metrics.fearAndGreedIndex.toFixed(0), // F&G is usually an integer
 			Unit: metrics.fearAndGreedClassification, // Classification as the unit
 			Change: NaN, // No 24h change available for Fear and Greed Index on free tier
+			ValueColor: getColorForFearAndGreedClassification(
+				metrics.fearAndGreedClassification,
+			), // Color based on classification
 		},
 	];
 
@@ -112,9 +137,20 @@ export function logGlobalMetricsTable(
 	const maxValueRawLen = Math.max(...validValueLengths, "Value".length);
 
 	const finalTableData = dataForTable.map((item) => {
-		return {
-			Metric: chalk.blue(item.Metric),
-			Value:
+		// Special handling for Fear & Greed Index to apply classification-based color
+		let valueDisplay: string;
+		if (
+			item.Metric === "Fear & Greed Index" &&
+			Object.hasOwn(item, "ValueColor")
+		) {
+			// Apply the specific color for the classification
+			const paddedValue = item.ValueRaw.padEnd(maxValueRawLen);
+			const coloredUnit = chalk.yellow(item.Unit);
+			const combinedString = `${paddedValue} ${coloredUnit}`;
+			// Apply the classification color to the whole value string
+			valueDisplay = item.ValueColor(combinedString);
+		} else {
+			valueDisplay =
 				typeof item.ValueRaw === "string"
 					? formatCombinedValueUnit(
 							item.ValueRaw,
@@ -122,7 +158,12 @@ export function logGlobalMetricsTable(
 							item.Change,
 							maxValueRawLen,
 						)
-					: chalk.white(item.ValueRaw),
+					: chalk.white(String(item.ValueRaw));
+		}
+
+		return {
+			Metric: chalk.blue(item.Metric),
+			Value: valueDisplay,
 			"24h Change": formatChangePercentage(item.Change),
 		};
 	});
