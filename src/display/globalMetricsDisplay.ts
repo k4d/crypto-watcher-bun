@@ -76,11 +76,20 @@ function formatCombinedValueUnit(
  * @param metrics The global metrics object.
  * @param currency The base currency for display.
  */
+// Define a type for the table data item
+type TableDataItem = {
+	Metric: string;
+	ValueRaw: string;
+	Unit: string;
+	Change: number;
+	ValueColor?: typeof chalk;
+};
+
 export function logGlobalMetricsTable(
 	metrics: GlobalMetrics,
 	currency: string,
 ) {
-	const dataForTable = [
+	const dataForTable: TableDataItem[] = [
 		{
 			Metric: "Total Market Cap",
 			ValueRaw: formatCurrency(metrics.totalMarketCap),
@@ -139,10 +148,7 @@ export function logGlobalMetricsTable(
 	const finalTableData = dataForTable.map((item) => {
 		// Special handling for Fear & Greed Index to apply classification-based color
 		let valueDisplay: string;
-		if (
-			item.Metric === "Fear & Greed Index" &&
-			Object.hasOwn(item, "ValueColor")
-		) {
+		if (item.Metric === "Fear & Greed Index" && item.ValueColor) {
 			// Apply the specific color for the classification
 			const paddedValue = item.ValueRaw.padEnd(maxValueRawLen);
 			const coloredUnit = chalk.yellow(item.Unit);

@@ -9,6 +9,10 @@ import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
 import { formatPrice } from "./formatters";
 import { generateSignal } from "./signal";
 import { getRunCount, getState, setState } from "./stateHelpers";
+import {
+	formatVolatility,
+	updateIntermediateDataWithVolatility,
+} from "./volatility";
 
 /**
  * Logs the prices and 24h statistics of cryptocurrencies to the console in a tabular format.
@@ -57,30 +61,26 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 	);
 	addHistoryAndPrune(currentPrices);
 
-	for (const id of coinSymbols) {
-		const priceData = currentPrices[id];
-		const symbol = config.coins[id];
-		if (priceData && symbol) {
-			const oldPrice = previousPrices?.[id]?.current;
-			const volatility =
-				oldPrice !== undefined
-					? Math.abs(((priceData.current - oldPrice) / oldPrice) * 100)
-					: 0;
-			intermediateData.push({ id, symbol, priceData, volatility });
-		} else {
-			console.log(
-				chalk.yellow(`Warning: Could not find price data for: ${id}.`),
-			);
-		}
-	}
+	// Prepare query to fetch historical prices for improved volatility calculation
+	const findPriceAgoQuery = db.query(
+		"SELECT price FROM price_history WHERE symbol_id = ?1 AND timestamp <= ?2 ORDER BY timestamp DESC LIMIT 1;",
+	);
 
-	// --- Pass 2: Calculate max lengths and volatility ranks ---
+	updateIntermediateDataWithVolatility(
+		intermediateData,
+		currentPrices,
+		coinSymbols,
+		config,
+		findPriceAgoQuery,
+		previousPrices,
+	);
+
+	// --- Pass 2: Calculate max lengths ---
 	let maxHighLen = 0,
 		maxLowLen = 0,
 		maxAvgLen = 0,
 		maxBaseSymbolLen = 0;
 	const quoteSymbol = config.currency.toUpperCase();
-	const rankMap = new Map<string, number>();
 
 	for (const data of intermediateData) {
 		maxHighLen = Math.max(maxHighLen, formatPrice(data.priceData.high).length);
@@ -89,18 +89,8 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 		maxBaseSymbolLen = Math.max(maxBaseSymbolLen, data.symbol.length);
 	}
 
-	if (previousPrices !== null) {
-		[...intermediateData]
-			.sort((a, b) => b.volatility - a.volatility)
-			.forEach((data, index) => {
-				rankMap.set(data.id, index + 1);
-			});
-	}
-
 	// --- Pass 3: Pre-calculate all change strings and signals for padding ---
-	const findPriceAgoQuery = db.query(
-		"SELECT price FROM price_history WHERE symbol_id = ?1 AND timestamp <= ?2 ORDER BY timestamp DESC LIMIT 1;",
-	);
+	// Note: findPriceAgoQuery is already defined earlier in the code
 
 	const preFormattedChanges = await Promise.all(
 		intermediateData.map(async (data) => {
@@ -133,7 +123,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 				priceColor = chalk.bgHex("#8B0000").white;
 			}
 
-			// Find historical prices from SQLite
+			// Find historical prices from SQLite (using the query defined earlier)
 			const findPriceAgo = (ms: number) => {
 				const result = findPriceAgoQuery.get(data.id, now - ms) as {
 					price: number;
@@ -193,6 +183,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 	let max15mChangeLen = 0;
 	let max30mChangeLen = 0;
 	let maxSessionChangeLen = 0;
+	let maxVolatilityLen = 0;
 
 	for (const changeData of preFormattedChanges) {
 		maxChange1mLen = Math.max(maxChange1mLen, changeData.changeString.length);
@@ -207,6 +198,14 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 		maxSessionChangeLen = Math.max(
 			maxSessionChangeLen,
 			changeData.sessionChangeString.length,
+		);
+	}
+
+	// Calculate max length for volatility values
+	for (const data of intermediateData) {
+		maxVolatilityLen = Math.max(
+			maxVolatilityLen,
+			data.volatility.toFixed(2).length,
 		);
 	}
 
@@ -234,8 +233,7 @@ export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 				)} ${preFormatted.change30mString.padEnd(
 					max30mChangeLen,
 				)} ${preFormatted.sessionChangeString.padEnd(maxSessionChangeLen)}`,
-				"V#":
-					previousPrices === null ? chalk.gray("N/A") : rankMap.get(data.id),
+				Volatility: formatVolatility(data.volatility, previousPrices === null),
 				Signal: preFormatted.signalString,
 			};
 		})

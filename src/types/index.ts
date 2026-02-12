@@ -110,7 +110,7 @@ export interface IntermediateDataItem {
 	id: string; // The original ID from config.coins
 	symbol: string; // The base symbol (e.g., "BTC")
 	priceData: PriceData; // The detailed price data for the coin
-	volatility: number; // Calculated volatility
+	volatility: number; // Calculated volatility (improved algorithm using multiple time intervals)
 }
 
 /**
