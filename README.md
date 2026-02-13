@@ -159,7 +159,7 @@ Database initialized at data/dev_history.sqlite and schema verified.
 | |/ |/ / /_/ / /_/ /__/ / / /  __/ /
 |__/|__/\__,_/\__/\___/_/ /_/\___/_/
 
-Crypto Watcher v1.4.1 started.
+Crypto Watcher v1.4.2 started.
 ┌───┬────────────────────┬─────────────────────┬────────────┐
 │   │ Metric             │ Value               │ 24h Change │
 ├───┼────────────────────┼─────────────────────┼────────────┤
