@@ -1,7 +1,9 @@
 /**
  * @file This module initializes and configures the SQLite database using bun:sqlite.
  */
+
 import { Database } from "bun:sqlite";
+import { dbStart } from "@/components";
 
 // Determine the database file based on the environment
 const isProduction = Bun.env.NODE_ENV === "production";
@@ -12,7 +14,7 @@ const dbFile = isProduction
 // Initialize the database. It will be created if it doesn't exist.
 const db = new Database(dbFile);
 
-console.log(`Database initialized at ${dbFile}`);
+dbStart(dbFile);
 
 // --- Schema Initialization ---
 
@@ -38,7 +40,5 @@ db.run(`
 db.run(
 	"CREATE INDEX IF NOT EXISTS idx_price_history_timestamp ON price_history (symbol_id, timestamp);",
 );
-
-console.log("Database initialized and schema verified.");
 
 export default db;

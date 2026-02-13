@@ -8,10 +8,10 @@ import {
 	fetchFearAndGreedIndex,
 	fetchGlobalMetrics,
 } from "@/api/coinmarketcap";
+import { AppStart } from "@/components";
 import config from "@/config";
 import { logPriceData } from "@/display";
 import { logGlobalMetricsTable } from "@/display/globalMetricsDisplay";
-import { logAppStart } from "@/display/logMessages";
 import { startScheduler } from "@/scheduler";
 import type { GlobalMetrics } from "@/types";
 
@@ -28,8 +28,8 @@ async function runTask() {
 	}
 }
 
-// --- Application Startup ---
-await logAppStart();
+// --- Application Start ---
+await AppStart();
 
 let globalMetrics: GlobalMetrics | undefined;
 if (config.cmc_api_key) {

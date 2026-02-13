@@ -3,6 +3,7 @@
  */
 
 import chalk from "chalk";
+import { TaskMessage } from "@/components";
 import config from "@/config";
 import db from "@/db"; // Import the database instance
 import type { IntermediateDataItem, TransformedBinanceResponse } from "@/types";
@@ -20,11 +21,7 @@ import {
  */
 export async function logPriceData(currentPrices: TransformedBinanceResponse) {
 	const runCount = getRunCount();
-	console.log(
-		chalk.gray(
-			`\n[${runCount}] Task run at ${new Date().toLocaleTimeString()}`,
-		),
-	);
+	TaskMessage(runCount);
 
 	// Retrieve previous and initial prices from SQLite
 	const initialPrices = getState("initialPrices");

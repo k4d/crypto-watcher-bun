@@ -3,11 +3,8 @@
  */
 
 import cron from "node-cron";
+import { InvalidIntervalError, SchedulerStart } from "@/components";
 import config from "@/config";
-import {
-	logInvalidIntervalError,
-	logSchedulerStart,
-} from "@/display/logMessages";
 
 /**
  * Sets up and starts a cron job based on the interval specified in the configuration.
@@ -34,17 +31,17 @@ export function startScheduler(task: () => void) {
 				cronSchedule = `0 0 */${value} * * *`; // At second 0, minute 0, every 'value' hours
 			} else {
 				// This case is unlikely due to the regex, but it's a safeguard.
-				logInvalidIntervalError(interval);
+				InvalidIntervalError(interval);
 				process.exit(1); // Exit if interval format is unsupported
 			}
 
 			// Schedule the provided task using the generated cron schedule.
 			cron.schedule(cronSchedule, task);
-			logSchedulerStart(interval);
+			SchedulerStart(interval);
 		}
 	} else {
 		// Handles cases where the interval format in config.yml is invalid.
-		logInvalidIntervalError(interval);
+		InvalidIntervalError(interval);
 		process.exit(1); // Exit if interval format is invalid
 	}
 }

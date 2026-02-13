@@ -1,10 +1,7 @@
 import { beforeEach, expect, test, vi } from "bun:test";
 import cron from "node-cron";
+import { InvalidIntervalError, SchedulerStart } from "@/components";
 import config from "@/config";
-import {
-	logInvalidIntervalError,
-	logSchedulerStart,
-} from "@/display/logMessages";
 import { startScheduler } from "./index";
 
 // Mock the modules we depend on
@@ -21,10 +18,9 @@ vi.mock("@/config", () => ({
 	},
 }));
 
-vi.mock("@/display/logMessages", () => ({
-	logSchedulerStart: vi.fn(),
-	logInvalidIntervalError: vi.fn(),
-	// Add other functions from display if they get used, but for now this is enough
+vi.mock("@/components", () => ({
+	SchedulerStart: vi.fn(),
+	InvalidIntervalError: vi.fn(),
 }));
 
 // A helper function to set the mock config value
@@ -43,8 +39,8 @@ test("startScheduler should schedule a task for minutes", () => {
 	startScheduler(task);
 
 	expect(cron.schedule).toHaveBeenCalledWith("0 */10 * * * *", task);
-	expect(logSchedulerStart).toHaveBeenCalledWith("10m");
-	expect(logInvalidIntervalError).not.toHaveBeenCalled();
+	expect(SchedulerStart).toHaveBeenCalledWith("10m");
+	expect(InvalidIntervalError).not.toHaveBeenCalled();
 });
 
 test("startScheduler should schedule a task for seconds", () => {
@@ -53,8 +49,8 @@ test("startScheduler should schedule a task for seconds", () => {
 	startScheduler(task);
 
 	expect(cron.schedule).toHaveBeenCalledWith("*/30 * * * * *", task);
-	expect(logSchedulerStart).toHaveBeenCalledWith("30s");
-	expect(logInvalidIntervalError).not.toHaveBeenCalled();
+	expect(SchedulerStart).toHaveBeenCalledWith("30s");
+	expect(InvalidIntervalError).not.toHaveBeenCalled();
 });
 
 test("startScheduler should schedule a task for hours", () => {
@@ -63,8 +59,8 @@ test("startScheduler should schedule a task for hours", () => {
 	startScheduler(task);
 
 	expect(cron.schedule).toHaveBeenCalledWith("0 0 */2 * * *", task);
-	expect(logSchedulerStart).toHaveBeenCalledWith("2h");
-	expect(logInvalidIntervalError).not.toHaveBeenCalled();
+	expect(SchedulerStart).toHaveBeenCalledWith("2h");
+	expect(InvalidIntervalError).not.toHaveBeenCalled();
 });
 
 test("startScheduler should call error log for invalid interval", () => {
@@ -81,9 +77,9 @@ test("startScheduler should call error log for invalid interval", () => {
 	const task = () => {};
 	startScheduler(task);
 
-	expect(logInvalidIntervalError).toHaveBeenCalledWith("10years");
+	expect(InvalidIntervalError).toHaveBeenCalledWith("10years");
 	expect(cron.schedule).not.toHaveBeenCalled();
-	expect(logSchedulerStart).not.toHaveBeenCalled();
+	expect(SchedulerStart).not.toHaveBeenCalled();
 	expect(exitMock).toHaveBeenCalledWith(1);
 
 	// Restore the original process.exit
